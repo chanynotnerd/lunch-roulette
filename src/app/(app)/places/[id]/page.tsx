@@ -2,43 +2,36 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { listPlaceRestaurants } from '@/actions/places'
 import { ERROR_MESSAGES } from '@/lib/result'
+import LevelStamps from '@/app/components/LevelStamps'
 
 export const dynamic = 'force-dynamic'
 
-export default async function PlaceRestaurantsPage({
-  params,
-}: {
-  params: Promise<{ id: string }>
-}) {
+/** S3. 장소에 연결된 식당 목록. */
+export default async function PlaceRestaurantsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const result = await listPlaceRestaurants(id)
   if (!result.ok && result.code === 'AUTH_REQUIRED') redirect('/login')
 
   return (
     <>
-      <p style={{ margin: '0 0 8px' }}>
-        <Link href="/places">← 장소 목록</Link>
-      </p>
-      <h1>연결된 식당</h1>
+      <Link href="/places" className="back-link">
+        장소 목록으로
+      </Link>
+      <h1 className="page-title">연결된 식당</h1>
       {!result.ok ? (
-        <p role="alert">{ERROR_MESSAGES[result.code](result.params)}</p>
+        <p role="alert" className="alert">
+          {ERROR_MESSAGES[result.code](result.params)}
+        </p>
       ) : result.data.length === 0 ? (
-        <p>{ERROR_MESSAGES.PLACE_NO_RESTAURANTS()}</p>
+        <p className="muted">{ERROR_MESSAGES.PLACE_NO_RESTAURANTS()}</p>
       ) : (
-        <ul style={{ listStyle: 'none', padding: 0 }}>
+        <ul className="rows">
           {result.data.map((r) => (
-            <li key={r.id} style={{ border: '1px solid #ccc', padding: 12, marginBottom: 8 }}>
-              <div>
-                <strong>{r.name}</strong>
-              </div>
-              <div>{r.address}</div>
-              <div style={{ marginTop: 4 }}>
-                <span style={{ padding: '2px 8px', borderRadius: 12, background: '#eef', fontSize: 13 }}>
-                  Lv{r.level} {r.levelName}
-                </span>
-                {r.nextIn !== null && <span style={{ marginLeft: 8, fontSize: 13 }}>다음 레벨까지 {r.nextIn}회</span>}
-              </div>
-              {!r.has_hours && <div style={{ color: '#888' }}>영업시간 정보 없음</div>}
+            <li key={r.id} className="row">
+              <p className="row-title">{r.name}</p>
+              <p className="muted small">{r.address}</p>
+              <LevelStamps level={r.level} levelName={r.levelName} nextIn={r.nextIn} />
+              {!r.has_hours && <p className="row-meta">영업시간 정보 없음</p>}
             </li>
           ))}
         </ul>

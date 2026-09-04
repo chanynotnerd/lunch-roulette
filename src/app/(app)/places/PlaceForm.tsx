@@ -43,10 +43,11 @@ export default function PlaceForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} style={{ display: 'grid', gap: 8 }}>
-      <label>
+    <form onSubmit={onSubmit} className="form">
+      <label className="field">
         이름
         <input
+          className="input"
           name="name"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -54,24 +55,24 @@ export default function PlaceForm() {
           maxLength={50}
           placeholder="예: 회사"
           disabled={pending}
-          style={{ display: 'block', width: '100%' }}
         />
       </label>
-      <label>
+      <label className="field">
         주소
         <input
+          className="input"
           name="address"
           value={address}
           onChange={(e) => setAddress(e.target.value)}
           required
           placeholder="도로명 주소"
           disabled={pending}
-          style={{ display: 'block', width: '100%' }}
         />
       </label>
-      <label>
+      <label className="field">
         반경(m)
         <input
+          className="input"
           name="radius"
           type="number"
           min={100}
@@ -81,14 +82,15 @@ export default function PlaceForm() {
           onChange={(e) => setRadius(Number(e.target.value))}
           required
           disabled={pending}
-          style={{ display: 'block', width: '100%' }}
         />
       </label>
-      <button type="submit" disabled={pending}>
-        {pending ? '식당을 찾는 중…' : '추가'}
+      <button type="submit" className="btn btn-block" disabled={pending}>
+        {pending ? '식당을 찾는 중…' : '장소 추가'}
       </button>
       {message && (
-        <p role={message.kind === 'error' ? 'alert' : 'status'}>{message.text}</p>
+        <p role={message.kind === 'error' ? 'alert' : 'status'} className={message.kind === 'error' ? 'alert' : 'muted'}>
+          {message.text}
+        </p>
       )}
     </form>
   )
