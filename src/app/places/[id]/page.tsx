@@ -1,0 +1,43 @@
+import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { listPlaceRestaurants } from '@/actions/places'
+import { ERROR_MESSAGES } from '@/lib/result'
+
+export const dynamic = 'force-dynamic'
+
+export default async function PlaceRestaurantsPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  const result = await listPlaceRestaurants(id)
+  if (!result.ok && result.code === 'AUTH_REQUIRED') redirect('/login')
+
+  return (
+    <main style={{ maxWidth: 480, margin: '0 auto', padding: 16 }}>
+      <nav style={{ marginBottom: 16, display: 'flex', gap: 12 }}>
+        <Link href="/">홈</Link>
+        <Link href="/places">장소</Link>
+      </nav>
+      <h1>연결된 식당</h1>
+      {!result.ok ? (
+        <p role="alert">{ERROR_MESSAGES[result.code](result.params)}</p>
+      ) : result.data.length === 0 ? (
+        <p>{ERROR_MESSAGES.PLACE_NO_RESTAURANTS()}</p>
+      ) : (
+        <ul style={{ listStyle: 'none', padding: 0 }}>
+          {result.data.map((r) => (
+            <li key={r.id} style={{ border: '1px solid #ccc', padding: 12, marginBottom: 8 }}>
+              <div>
+                <strong>{r.name}</strong>
+              </div>
+              <div>{r.address}</div>
+              {!r.has_hours && <div style={{ color: '#888' }}>영업시간 정보 없음</div>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </main>
+  )
+}
