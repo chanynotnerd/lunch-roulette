@@ -67,7 +67,7 @@ PK는 (place_id, restaurant_id). 여러 사용자의 장소가 같은 식당 행
 |---|---|---|
 | id | uuid | PK |
 | user_id | uuid | |
-| place_id | uuid | places 참조 |
+| place_id | uuid, null 허용 | places 참조. 장소 삭제 시 null (on delete set null) |
 | slot_date | date | Asia/Seoul 기준 날짜 |
 | slot | text | lunch 또는 dinner |
 | candidate_ids | uuid[] | 길이 3 |

@@ -47,3 +47,11 @@
 - Google Maps Platform SKU 상세: https://developers.google.com/maps/billing-and-pricing/sku-details
 - Text Search (New) 문서: https://developers.google.com/maps/documentation/places/web-service/text-search
 - Nearby Search (New) 문서(20개 상한 확인): https://developers.google.com/maps/documentation/places/web-service/nearby-search
+
+## 2026-09-04 전환: 카카오 로컬 API (D17)
+
+- 검색 소스는 `PLACES_PROVIDER` 환경변수로 고른다. `kakao` 또는 `google`. 미설정이면 `KAKAO_REST_API_KEY`가 있을 때 kakao.
+- 카카오 호출: 주소 → 좌표는 `/v2/local/search/address.json`(없으면 keyword 검색), 식당은 `/v2/local/search/keyword.json`에 `category_group_code=FD6`, `radius`, `sort=distance`, 페이지당 15개, 최대 3페이지(45개).
+- 인증은 `Authorization: KakaoAK <REST API 키>` 헤더. 결제 등록이 필요 없고 일 30만 회 무료.
+- 카카오는 영업시간을 제공하지 않는다. 식당은 `src/config/default-hours.ts`의 기본 영업시간으로 저장되고 hours_source는 `default`다. 정확한 시간은 보정 파일로 덮어쓴다(스펙 10). 마이그레이션 0004가 hours_source 허용값에 kakao, default를 추가한다.
+- google_place_id 컬럼에는 `kakao:<id>` 형식으로 저장한다. 컬럼 이름은 바꾸지 않는다.

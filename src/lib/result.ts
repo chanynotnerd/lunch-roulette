@@ -10,6 +10,7 @@ export type ErrorCode =
   | 'SESSION_NOT_OPEN'
   | 'REROLL_ALREADY_USED'
   | 'NOT_A_CANDIDATE'
+  | 'INVALID_INPUT'
   | 'UNEXPECTED'
 
 export type Ok<T> = { ok: true; data: T }
@@ -31,5 +32,6 @@ export const ERROR_MESSAGES: Record<ErrorCode, (p?: Record<string, string | numb
   SESSION_NOT_OPEN: () => '이미 확정된 룰렛입니다',
   REROLL_ALREADY_USED: () => '다시 돌리기는 한 번만 가능합니다',
   NOT_A_CANDIDATE: () => '후보에 없는 식당입니다',
+  INVALID_INPUT: (p) => `${p?.field ?? '입력값'}은(는) 1~${p?.max ?? ''}자로 입력해 주세요`,
   UNEXPECTED: () => '알 수 없는 오류가 발생했습니다',
 }

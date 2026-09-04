@@ -20,13 +20,14 @@
 | SESSION_NOT_OPEN | F5, F6 | 없음 | 이미 확정된 룰렛입니다 |
 | REROLL_ALREADY_USED | F5 | 없음 | 다시 돌리기는 한 번만 가능합니다 |
 | NOT_A_CANDIDATE | F6 | 없음 | 후보에 없는 식당입니다 |
+| INVALID_INPUT | F2 | 없음 | {field}은(는) 1~{max}자로 입력해 주세요 (서버 액션은 직접 POST로도 호출되므로 서버에서 다시 검사) |
 
 흐름 번호는 [06-flows.md](06-flows.md)를 가리킨다.
 
 ## 응답 형식
 
 - 성공: `{ ok: true, data }`
-- 실패: `{ ok: false, code, params }`. params에는 문구에 들어갈 값(HH:MM, N)을 담는다.
+- 실패: `{ ok: false, code, params }`. params에는 문구에 들어갈 값(HH:MM, N, field, max)을 담는다.
 - 예외를 던지지 않고 값으로 돌려준다. 예상하지 못한 예외만 로깅 후 UNEXPECTED로 바꿔 돌려준다.
 
 ## 부분 저장 방지

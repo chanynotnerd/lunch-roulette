@@ -4,8 +4,9 @@ import { revalidatePath } from 'next/cache'
 import { requireUser } from '@/lib/auth'
 import { fail, ok, type Result } from '@/lib/result'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { geocode, searchRestaurants } from '@/places/google'
+import { geocode, searchRestaurants } from '@/places/search'
 import { ExternalApiError } from '@/places/types'
+import { isUuid, validatePlaceInput } from '@/actions/places-helpers'
 
 export type PlaceSummary = {
   id: string
@@ -36,12 +37,13 @@ function revalidate(): void {
   revalidatePath('/')
 }
 
-/** 장소 소유권 확인. 없거나 남의 것이면 PLACE_FORBIDDEN. */
+/** 장소 소유권 확인. 없거나 남의 것이면 PLACE_FORBIDDEN. UUID 형식이 아니어도 같은 코드로 거절한다. */
 async function assertOwner(
   admin: ReturnType<typeof createAdminClient>,
   placeId: string,
   userId: string,
 ): Promise<Result<null>> {
+  if (!isUuid(placeId)) return fail('PLACE_FORBIDDEN')
   const { data, error } = await admin
     .from('places')
     .select('user_id')
@@ -127,11 +129,10 @@ export async function createPlace(input: {
     const user = await requireUser()
     if (!user) return fail('AUTH_REQUIRED')
 
-    const name = (input.name ?? '').trim()
-    const address = (input.address ?? '').trim()
+    const valid = validatePlaceInput(input)
+    if (!valid.ok) return valid
+    const { name, address } = valid.data
     const radiusM = clampRadius(Number(input.radiusM))
-    if (!name) return fail('UNEXPECTED')
-    if (!address) return fail('GEOCODE_NOT_FOUND')
 
     const admin = createAdminClient()
 
@@ -190,6 +191,7 @@ export async function deletePlace(placeId: string): Promise<Result<null>> {
     if (!owned.ok) return owned
 
     // place_restaurants 는 FK cascade 로 함께 삭제되고, 식당 행은 남는다. (F3)
+    // roulette_sessions 는 남고 place_id 만 null 이 된다. (0003_sessions_place_nullable.sql)
     const { error } = await admin.from('places').delete().eq('id', placeId).eq('user_id', user.id)
     if (error) throw error
 

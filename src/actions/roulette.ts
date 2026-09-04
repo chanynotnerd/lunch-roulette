@@ -40,7 +40,8 @@ type Admin = ReturnType<typeof createAdminClient>
 type SessionRow = {
   id: string
   user_id: string
-  place_id: string
+  /** 장소가 삭제되면 null (0003, 스펙 06 F3) */
+  place_id: string | null
   slot_date: string
   slot: Slot
   candidate_ids: string[]
@@ -160,7 +161,8 @@ async function stateFromSession(admin: Admin, userId: string, session: SessionRo
   }
   const [candidates, pool] = await Promise.all([
     buildCandidates(admin, userId, session.candidate_ids),
-    getOpenPool(admin, session.place_id, now),
+    // 열린 세션의 장소가 삭제된 경우 풀은 비어 있다. 후보 카드는 그대로 보여 확정은 가능하다.
+    session.place_id ? getOpenPool(admin, session.place_id, now) : Promise.resolve([] as RestaurantRow[]),
   ])
   return {
     kind: 'open',
@@ -272,6 +274,8 @@ export async function reroll(sessionId: string): Promise<Result<HomeState>> {
     if (!session || session.status !== 'open') return fail('SESSION_NOT_OPEN')
     if (session.reroll_used) return fail('REROLL_ALREADY_USED')
     if (!isSessionSlotCurrent(session, now)) return fail('OUTSIDE_SLOT', { time: nextSlotStart(now) })
+    // 장소가 삭제된 세션은 다시 돌릴 풀이 없다.
+    if (!session.place_id) return fail('PLACE_FORBIDDEN')
 
     const pool = await getOpenPool(admin, session.place_id, now)
     if (pool.length < 3) return fail('NOT_ENOUGH_OPEN', { count: pool.length })

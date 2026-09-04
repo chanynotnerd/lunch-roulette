@@ -75,4 +75,13 @@ SUPABASE_SERVICE_ROLE_KEY=...
 GOOGLE_MAPS_API_KEY=...
 ```
 
-- [ ] Supabase SQL Editor에서 `supabase/migrations/0001_init.sql`, `0002_place_rpc.sql`을 순서대로 실행. (세션 A, C가 파일을 만든 뒤)
+- [ ] Supabase SQL Editor에서 `supabase/migrations/0001_init.sql`, `0002_place_rpc.sql`, `0003_sessions_place_nullable.sql`을 순서대로 실행. (세션 A, C가 파일을 만든 뒤. 0003은 코드리뷰 후 추가)
+
+## 세션 E 인계 항목 (2026-09-04 세션 C 2부 코드리뷰에서 이월)
+
+세션 C 2부(장소 액션/화면) 리뷰에서 나온 항목 중 세션 E 통합 단계로 넘긴 것.
+
+- [ ] **장소별 식당 목록에 레벨 배지와 "다음 레벨까지 N회" 표시** (스펙 07 S3, 06 F8). `src/app/places/[id]/page.tsx`와 `listPlaceRestaurants`에 확정 횟수 집계를 붙이고 `src/rules/level.ts`로 계산한다. 세션 D의 `roulette-helpers.ts` `countXp`, `toCandidate`를 재사용할 수 있다.
+- [ ] **장소 화면 두 곳에 공통 하단 탭 적용** (스펙 07 공통). `src/app/places/page.tsx`, `src/app/places/[id]/page.tsx`의 인라인 `<nav>`를 세션 D의 `src/app/components/Nav.tsx`로 교체한다. 현재는 기록 탭으로 가는 링크가 없다.
+- [ ] **수동 확인 시나리오 추가**: 장소 생성 → 돌리기 → 확정 → 그 장소 삭제 → 기록 화면에 "삭제된 장소" 표시. (0003 마이그레이션 회귀 확인)
+- [ ] 참고: 실제 설치된 Next는 16이다. `src/middleware.ts`는 `proxy.ts` 관례로 바뀌었으므로 빌드 시 경고가 나면 이름을 바꾼다.

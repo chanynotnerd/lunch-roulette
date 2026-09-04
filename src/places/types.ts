@@ -9,7 +9,7 @@ export type FoundRestaurant = {
   lat: number
   lng: number
   hours: Hours | null
-  hours_source: 'google' | 'none'
+  hours_source: 'google' | 'default' | 'none'
 }
 
 export class ExternalApiError extends Error {
