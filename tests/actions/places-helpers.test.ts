@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { ADDRESS_MAX, NAME_MAX, isUuid, validatePlaceInput } from '@/actions/places-helpers'
+import { ADDRESS_MAX, MAX_PLACES_PER_USER, NAME_MAX, checkPlaceLimit, isUuid, validatePlaceInput } from '@/actions/places-helpers'
 
 describe('isUuid', () => {
   it('정상 UUID v4 형식은 true', () => {
@@ -62,5 +62,22 @@ describe('validatePlaceInput', () => {
     expect(r.ok).toBe(false)
     if (r.ok) return
     expect(r.code).toBe('INVALID_INPUT')
+  })
+})
+
+describe('checkPlaceLimit', () => {
+  it('상한 미만이면 통과', () => {
+    expect(checkPlaceLimit(0)).toEqual({ ok: true, data: null })
+    expect(checkPlaceLimit(MAX_PLACES_PER_USER - 1).ok).toBe(true)
+  })
+
+  it('상한에 닿거나 넘으면 PLACE_LIMIT (max 포함)', () => {
+    const r = checkPlaceLimit(MAX_PLACES_PER_USER)
+    expect(r).toEqual({ ok: false, code: 'PLACE_LIMIT', params: { max: MAX_PLACES_PER_USER } })
+    expect(checkPlaceLimit(MAX_PLACES_PER_USER + 5).ok).toBe(false)
+  })
+
+  it('숫자가 아니면(count null 등 방어) 거절한다', () => {
+    expect(checkPlaceLimit(NaN).ok).toBe(false)
   })
 })

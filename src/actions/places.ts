@@ -6,7 +6,7 @@ import { fail, ok, type Result } from '@/lib/result'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { geocode, searchRestaurants } from '@/places/search'
 import { ExternalApiError } from '@/places/types'
-import { isUuid, validatePlaceInput } from '@/actions/places-helpers'
+import { checkPlaceLimit, isUuid, validatePlaceInput } from '@/actions/places-helpers'
 import { countXp } from '@/actions/roulette-helpers'
 import { getLevel } from '@/rules/level'
 
@@ -162,6 +162,15 @@ export async function createPlace(input: {
     const radiusM = clampRadius(Number(input.radiusM))
 
     const admin = createAdminClient()
+
+    // 외부 API를 부르기 전에 사용자당 장소 수 상한을 확인한다(리뷰 S1).
+    const { count, error: countError } = await admin
+      .from('places')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+    if (countError) throw countError
+    const limit = checkPlaceLimit(count ?? 0)
+    if (!limit.ok) return limit
 
     const { data: dup, error: dupError } = await admin
       .from('places')

@@ -1,5 +1,6 @@
 import { toHours, type GoogleOpeningHours } from './convert'
 import { distanceMeters } from './distance'
+import { fetchExternalJson, finiteNumber, isRecord } from './http'
 import { ExternalApiError, type FoundRestaurant, type LatLng } from './types'
 
 function apiKey(): string {
@@ -8,40 +9,45 @@ function apiKey(): string {
   return key
 }
 
-type GeocodeResponse = {
-  status: string
-  error_message?: string
-  results?: { geometry: { location: { lat: number; lng: number } } }[]
-}
-
 export async function geocode(address: string): Promise<LatLng | null> {
   const url =
     'https://maps.googleapis.com/maps/api/geocode/json' +
     `?address=${encodeURIComponent(address)}&language=ko&region=kr&key=${apiKey()}`
-  const res = await fetch(url, { cache: 'no-store' })
-  if (!res.ok) throw new ExternalApiError(`Geocoding HTTP ${res.status}`, res.status)
-  const json = (await res.json()) as GeocodeResponse
-  if (json.status === 'ZERO_RESULTS') return null
-  if (json.status !== 'OK' || !json.results?.length) {
-    throw new ExternalApiError(`Geocoding status ${json.status}: ${json.error_message ?? ''}`)
+  const json = await fetchExternalJson('Geocoding', url)
+  if (!isRecord(json) || typeof json.status !== 'string') {
+    throw new ExternalApiError('Geocoding unexpected response shape')
   }
-  const { lat, lng } = json.results[0].geometry.location
+  if (json.status === 'ZERO_RESULTS') return null
+  const results = Array.isArray(json.results) ? json.results : []
+  if (json.status !== 'OK' || results.length === 0) {
+    const detail = typeof json.error_message === 'string' ? json.error_message : ''
+    throw new ExternalApiError(`Geocoding status ${json.status}: ${detail}`)
+  }
+  const first = results[0]
+  const geometry = isRecord(first) && isRecord(first.geometry) ? first.geometry : null
+  const location = geometry && isRecord(geometry.location) ? geometry.location : null
+  const lat = location ? finiteNumber(location.lat) : null
+  const lng = location ? finiteNumber(location.lng) : null
+  if (lat === null || lng === null) throw new ExternalApiError('Geocoding unexpected response shape')
   return { lat, lng }
 }
-
-type GPlace = {
-  id: string
-  displayName?: { text?: string }
-  formattedAddress?: string
-  location?: { latitude: number; longitude: number }
-  regularOpeningHours?: GoogleOpeningHours
-}
-
-type SearchTextResponse = { places?: GPlace[]; nextPageToken?: string }
 
 const FIELD_MASK =
   'places.id,places.displayName,places.formattedAddress,places.location,places.regularOpeningHours,nextPageToken'
 const MAX_PAGES = 3
+
+type SearchPage = { places: Record<string, unknown>[]; nextPageToken: string | undefined }
+
+/** 최상위 형태 검증: places 는 배열이어야 한다 (없으면 빈 배열로 본다). */
+function parseSearchPage(json: unknown): SearchPage {
+  if (!isRecord(json)) throw new ExternalApiError('Places searchText unexpected response shape')
+  if (json.places !== undefined && !Array.isArray(json.places)) {
+    throw new ExternalApiError('Places searchText unexpected response shape')
+  }
+  const places = Array.isArray(json.places) ? json.places.filter(isRecord) : []
+  const nextPageToken = typeof json.nextPageToken === 'string' && json.nextPageToken ? json.nextPageToken : undefined
+  return { places, nextPageToken }
+}
 
 export async function searchRestaurants(center: LatLng, radiusM: number): Promise<FoundRestaurant[]> {
   const key = apiKey()
@@ -62,7 +68,7 @@ export async function searchRestaurants(center: LatLng, radiusM: number): Promis
     }
     if (pageToken) body.pageToken = pageToken
 
-    const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+    const json = await fetchExternalJson('Places searchText', 'https://places.googleapis.com/v1/places:searchText', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -70,29 +76,24 @@ export async function searchRestaurants(center: LatLng, radiusM: number): Promis
         'X-Goog-FieldMask': FIELD_MASK,
       },
       body: JSON.stringify(body),
-      cache: 'no-store',
     })
-    if (!res.ok) {
-      const text = await res.text().catch(() => '')
-      throw new ExternalApiError(
-        `Places searchText HTTP ${res.status}: ${text.slice(0, 200)}`,
-        res.status,
-      )
-    }
-    const json = (await res.json()) as SearchTextResponse
+    const { places, nextPageToken } = parseSearchPage(json)
 
-    for (const p of json.places ?? []) {
-      if (!p.id || !p.location || seen.has(p.id)) continue
-      const lat = p.location.latitude
-      const lng = p.location.longitude
+    for (const p of places) {
+      if (typeof p.id !== 'string' || p.id === '' || seen.has(p.id)) continue
+      const location = isRecord(p.location) ? p.location : null
+      const lat = location ? finiteNumber(location.latitude) : null
+      const lng = location ? finiteNumber(location.longitude) : null
+      if (lat === null || lng === null) continue
       // Text Search locationBias is not strict; enforce the radius ourselves.
       if (distanceMeters(center, { lat, lng }) > radiusM) continue
       seen.add(p.id)
-      const hours = toHours(p.regularOpeningHours)
+      const displayName = isRecord(p.displayName) && typeof p.displayName.text === 'string' ? p.displayName.text : ''
+      const hours = toHours(isRecord(p.regularOpeningHours) ? (p.regularOpeningHours as GoogleOpeningHours) : null)
       found.push({
         google_place_id: p.id,
-        name: p.displayName?.text ?? '',
-        address: p.formattedAddress ?? '',
+        name: displayName,
+        address: typeof p.formattedAddress === 'string' ? p.formattedAddress : '',
         lat,
         lng,
         hours,
@@ -100,7 +101,7 @@ export async function searchRestaurants(center: LatLng, radiusM: number): Promis
       })
     }
 
-    pageToken = json.nextPageToken
+    pageToken = nextPageToken
     if (!pageToken) break
   }
 

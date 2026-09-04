@@ -36,19 +36,18 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  if (!user && !isPublicPath(pathname)) {
+  // getUser()가 갱신한 세션 쿠키를 redirect 응답에도 실어 보낸다. 빠뜨리면 갱신된 토큰이 버려진다.
+  const redirectTo = (to: string) => {
     const url = request.nextUrl.clone()
-    url.pathname = '/login'
+    url.pathname = to
     url.search = ''
-    return NextResponse.redirect(url)
+    const redirect = NextResponse.redirect(url)
+    response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie))
+    return redirect
   }
 
-  if (user && pathname.startsWith('/login')) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/'
-    url.search = ''
-    return NextResponse.redirect(url)
-  }
+  if (!user && !isPublicPath(pathname)) return redirectTo('/login')
+  if (user && pathname.startsWith('/login')) return redirectTo('/')
 
   return response
 }

@@ -1,3 +1,5 @@
+import 'server-only'
+
 import type { FoundRestaurant, LatLng } from './types'
 import * as google from './google'
 import * as kakao from './kakao'

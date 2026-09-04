@@ -5,11 +5,17 @@ import { fail, ok, type Result } from '@/lib/result'
 export const NAME_MAX = 50
 export const ADDRESS_MAX = 200
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+/** 사용자당 장소 수 상한. 개방형 가입 + 외부 API 호출 비용을 막는다(리뷰 S1). */
+export const MAX_PLACES_PER_USER = 10
 
-/** Postgres uuid 컬럼에 넣기 전에 형식을 검사한다. 잘못된 값은 22P02 예외 대신 호출부에서 거절한다. */
-export function isUuid(value: string): boolean {
-  return UUID_RE.test(value)
+export { isUuid } from '@/lib/uuid'
+
+/** 현재 장소 수로 새 장소를 만들 수 있는지. 상한에 닿았으면 PLACE_LIMIT. */
+export function checkPlaceLimit(currentCount: number): Result<null> {
+  if (!Number.isFinite(currentCount) || currentCount >= MAX_PLACES_PER_USER) {
+    return fail('PLACE_LIMIT', { max: MAX_PLACES_PER_USER })
+  }
+  return ok(null)
 }
 
 export type PlaceInput = { name: string; address: string }

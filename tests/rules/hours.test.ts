@@ -105,4 +105,50 @@ describe('isOpenAt', () => {
     const hours: Hours = { ...everyDay({ closed: true }), sat: { open: '00:00', close: '05:00' } }
     expect(isOpenAt(hours, new Date('2026-09-04T16:00:00Z'))).toBe(true)
   })
+
+  describe('robustness (R1, S2)', () => {
+    it('{closed:false, open, close} is treated as a normal open day', () => {
+      const hours = {
+        ...everyDay({ closed: true }),
+        fri: { closed: false, open: '11:00', close: '21:00' },
+      } as unknown as Hours
+      expect(isOpenAt(hours, at('12:00'))).toBe(true)
+      expect(isOpenAt(hours, at('22:00'))).toBe(false)
+    })
+
+    it('{closed:false} without open/close is not open', () => {
+      const hours = { ...regular, fri: { closed: false } } as unknown as Hours
+      expect(isOpenAt(hours, at('12:00'))).toBe(false)
+    })
+
+    it.each([
+      ['empty object', {}],
+      ['array', []],
+      ['string', 'mon'],
+      ['number weekday', { ...regular, fri: 5 }],
+      ['null weekday', { ...regular, fri: null }],
+      ['missing weekday', { ...regular, fri: undefined }],
+      ['open 25:00', { ...regular, fri: { open: '25:00', close: '21:00' } }],
+      ['open number', { ...regular, fri: { open: 660, close: '21:00' } }],
+      ['open missing', { ...regular, fri: { close: '21:00' } }],
+      ['break not object', { ...regular, fri: { open: '11:00', close: '21:00', break: '15:00-17:00' } }],
+      ['break.end malformed', { ...regular, fri: { open: '11:00', close: '21:00', break: { start: '15:00', end: '17' } } }],
+    ])('malformed hours (%s) → false without throwing', (_name, hours) => {
+      expect(() => isOpenAt(hours as unknown as Hours, at('12:00'))).not.toThrow()
+      expect(isOpenAt(hours as unknown as Hours, at('12:00'))).toBe(false)
+    })
+
+    it('runtime still accepts legacy "24:30"-style close (pre-0005 seed allowed it)', () => {
+      // 시드 검증(validateHours)은 24:01~24:59 를 거부하지만, 이미 저장된 행의 판정은 바뀌면 안 된다.
+      const hours = { ...regular, fri: { open: '11:00', close: '24:30' } } as unknown as Hours
+      expect(isOpenAt(hours, at('23:30'))).toBe(true)
+      expect(isOpenAt(hours, at('12:00'))).toBe(true)
+    })
+
+    it('malformed yesterday entry does not throw and does not extend into today', () => {
+      const hours = { ...everyDay({ closed: true }), fri: { open: '17:00', close: 'late' } } as unknown as Hours
+      expect(() => isOpenAt(hours, at('01:00', '2026-09-05'))).not.toThrow()
+      expect(isOpenAt(hours, at('01:00', '2026-09-05'))).toBe(false)
+    })
+  })
 })

@@ -1,4 +1,5 @@
 import { distanceMeters } from './distance'
+import { fetchExternalJson, finiteNumber, isRecord } from './http'
 import { ExternalApiError, type FoundRestaurant, type LatLng } from './types'
 import { DEFAULT_HOURS } from '@/config/default-hours'
 
@@ -8,7 +9,10 @@ import { DEFAULT_HOURS } from '@/config/default-hours'
  * - 식당 검색: /v2/local/search/keyword.json, category_group_code=FD6, 반경 radius, 페이지당 15개, 최대 3페이지
  * 카카오는 영업시간을 주지 않으므로 hours 는 DEFAULT_HOURS 를 넣고 hours_source 를 'default' 로 표시한다.
  * 정확한 영업시간은 data/hours-overrides.json 으로 덮어쓴다. (스펙 10)
+ * 저장 키는 `kakao:<id>` 형식이다.
  */
+
+const MAX_PAGES = 3
 
 function apiKey(): string {
   const key = process.env.KAKAO_REST_API_KEY
@@ -16,54 +20,54 @@ function apiKey(): string {
   return key
 }
 
-async function kakaoGet<T>(path: string, params: Record<string, string | number>): Promise<T> {
+type KakaoPage = { documents: Record<string, unknown>[]; isEnd: boolean }
+
+/** 최상위 형태 검증: documents 가 배열이어야 한다. meta.is_end 는 없으면 true 로 본다(더 요청하지 않음). */
+function parsePage(path: string, json: unknown): KakaoPage {
+  if (!isRecord(json) || !Array.isArray(json.documents)) {
+    throw new ExternalApiError(`Kakao ${path} unexpected response shape`)
+  }
+  const meta = isRecord(json.meta) ? json.meta : null
+  const isEnd = meta?.is_end === undefined ? true : meta.is_end === true
+  return { documents: json.documents.filter(isRecord), isEnd }
+}
+
+async function kakaoGet(path: string, params: Record<string, string | number>): Promise<KakaoPage> {
   const qs = Object.entries(params)
     .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
     .join('&')
-  const res = await fetch(`https://dapi.kakao.com${path}?${qs}`, {
+  const json = await fetchExternalJson(`Kakao ${path}`, `https://dapi.kakao.com${path}?${qs}`, {
     headers: { Authorization: `KakaoAK ${apiKey()}` },
-    cache: 'no-store',
   })
-  if (!res.ok) {
-    const body = await res.text().catch(() => '')
-    throw new ExternalApiError(`Kakao ${path} HTTP ${res.status}: ${body.slice(0, 200)}`, res.status)
-  }
-  return (await res.json()) as T
+  return parsePage(path, json)
 }
 
-type KakaoDoc = { x: string; y: string }
-type KakaoPage<T> = { documents: T[]; meta: { is_end: boolean; total_count: number } }
+/** 카카오 문서의 x(경도)/y(위도) 문자열을 좌표로. 유한하지 않으면 null. */
+function toLatLng(doc: Record<string, unknown>): LatLng | null {
+  const lat = finiteNumber(doc.y)
+  const lng = finiteNumber(doc.x)
+  if (lat === null || lng === null) return null
+  return { lat, lng }
+}
 
 export async function geocode(address: string): Promise<LatLng | null> {
-  const byAddress = await kakaoGet<KakaoPage<KakaoDoc>>('/v2/local/search/address.json', {
-    query: address,
-    size: 1,
-  })
+  const byAddress = await kakaoGet('/v2/local/search/address.json', { query: address, size: 1 })
   const a = byAddress.documents[0]
-  if (a) return { lat: Number(a.y), lng: Number(a.x) }
+  if (a) {
+    const point = toLatLng(a)
+    if (point) return point
+  }
 
-  const byKeyword = await kakaoGet<KakaoPage<KakaoDoc>>('/v2/local/search/keyword.json', {
-    query: address,
-    size: 1,
-  })
+  const byKeyword = await kakaoGet('/v2/local/search/keyword.json', { query: address, size: 1 })
   const k = byKeyword.documents[0]
-  if (k) return { lat: Number(k.y), lng: Number(k.x) }
+  if (k) return toLatLng(k)
   return null
-}
-
-type KakaoPlace = {
-  id: string
-  place_name: string
-  road_address_name?: string
-  address_name?: string
-  x: string
-  y: string
 }
 
 export async function searchRestaurants(center: LatLng, radiusM: number): Promise<FoundRestaurant[]> {
   const seen = new Map<string, FoundRestaurant>()
-  for (let page = 1; page <= 3; page++) {
-    const res = await kakaoGet<KakaoPage<KakaoPlace>>('/v2/local/search/keyword.json', {
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    const res = await kakaoGet('/v2/local/search/keyword.json', {
       query: '음식점',
       category_group_code: 'FD6',
       x: center.lng,
@@ -74,22 +78,26 @@ export async function searchRestaurants(center: LatLng, radiusM: number): Promis
       sort: 'distance',
     })
     for (const p of res.documents) {
-      const lat = Number(p.y)
-      const lng = Number(p.x)
-      if (distanceMeters(center, { lat, lng }) > radiusM) continue
+      if (typeof p.id !== 'string' || p.id === '') continue
+      const point = toLatLng(p)
+      if (!point) continue
+      if (distanceMeters(center, point) > radiusM) continue
       const id = `kakao:${p.id}`
       if (seen.has(id)) continue
       seen.set(id, {
         google_place_id: id,
-        name: p.place_name,
-        address: p.road_address_name || p.address_name || '',
-        lat,
-        lng,
+        name: typeof p.place_name === 'string' ? p.place_name : '',
+        address:
+          (typeof p.road_address_name === 'string' && p.road_address_name) ||
+          (typeof p.address_name === 'string' && p.address_name) ||
+          '',
+        lat: point.lat,
+        lng: point.lng,
         hours: DEFAULT_HOURS,
         hours_source: 'default',
       })
     }
-    if (res.meta.is_end) break
+    if (res.isEnd) break
   }
   return [...seen.values()]
 }

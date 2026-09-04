@@ -5,6 +5,7 @@ import { SLOTS } from '@/config/slots'
 import { requireUser } from '@/lib/auth'
 import { fail, ok, type Result } from '@/lib/result'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { isUuid } from '@/lib/uuid'
 import { isOpenAt } from '@/rules/hours'
 import { pickCandidates } from '@/rules/pick'
 import { getSlot, isAnyTimeMode, nextSlotStart } from '@/rules/slot'
@@ -223,6 +224,8 @@ export async function getHomeState(placeId: string | null): Promise<Result<HomeS
   const user = await requireUser()
   if (!user) return fail('AUTH_REQUIRED')
   if (!placeId) return ok({ kind: 'no_place' })
+  // 서버 액션은 직접 POST로도 호출된다. uuid가 아니면 DB(22P02)까지 가지 않고 거절한다(리뷰 A4).
+  if (!isUuid(placeId)) return fail('PLACE_FORBIDDEN')
   try {
     return await computeHomeState(createAdminClient(), user.id, placeId, now)
   } catch (e) {
@@ -235,6 +238,7 @@ export async function spin(placeId: string): Promise<Result<HomeState>> {
   const now = new Date()
   const user = await requireUser()
   if (!user) return fail('AUTH_REQUIRED')
+  if (!isUuid(placeId)) return fail('PLACE_FORBIDDEN')
   try {
     const admin = createAdminClient()
     const cur = getSlot(now)
@@ -282,6 +286,7 @@ export async function reroll(sessionId: string): Promise<Result<HomeState>> {
   const now = new Date()
   const user = await requireUser()
   if (!user) return fail('AUTH_REQUIRED')
+  if (!isUuid(sessionId)) return fail('SESSION_NOT_OPEN')
   try {
     const admin = createAdminClient()
     const session = await getSessionById(admin, user.id, sessionId)
@@ -319,11 +324,17 @@ export async function reroll(sessionId: string): Promise<Result<HomeState>> {
   }
 }
 
-/** F6. 확정: 후보 중 하나를 골라 세션을 confirmed로 바꾼다. 갱신 조건에 status = open을 넣어 두 번 눌러도 한 번만 반영한다. */
+/**
+ * F6. 확정: 후보 중 하나를 골라 세션을 confirmed로 바꾼다.
+ * 갱신 조건에 status = open을 넣어 두 번 눌러도 한 번만 반영하고, candidate_ids 포함 조건을 넣어
+ * 다시 돌리기와 경합해도 후보 밖 식당이 확정되지 않게 한다(리뷰 A2).
+ */
 export async function confirm(sessionId: string, restaurantId: string): Promise<Result<HomeState>> {
   const now = new Date()
   const user = await requireUser()
   if (!user) return fail('AUTH_REQUIRED')
+  if (!isUuid(sessionId)) return fail('SESSION_NOT_OPEN')
+  if (!isUuid(restaurantId)) return fail('NOT_A_CANDIDATE')
   try {
     const admin = createAdminClient()
     const session = await getSessionById(admin, user.id, sessionId)
@@ -336,10 +347,16 @@ export async function confirm(sessionId: string, restaurantId: string): Promise<
       .update({ chosen_restaurant_id: restaurantId, status: 'confirmed', confirmed_at: now.toISOString() })
       .eq('id', session.id)
       .eq('status', 'open')
+      .contains('candidate_ids', [restaurantId])
       .select('*')
     if (error) throw error
     const updated = (data as SessionRow[] | null)?.[0]
-    if (!updated) return fail('SESSION_NOT_OPEN')
+    if (!updated) {
+      // 그 사이 확정되었거나(status), 다시 돌리기로 후보가 바뀌었다(candidate_ids).
+      const latest = await getSessionById(admin, user.id, sessionId)
+      if (!latest || latest.status !== 'open') return fail('SESSION_NOT_OPEN')
+      return fail('NOT_A_CANDIDATE')
+    }
 
     revalidatePath('/')
     return ok(await stateFromSession(admin, user.id, updated, now))

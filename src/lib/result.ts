@@ -1,6 +1,7 @@
 export type ErrorCode =
   | 'AUTH_REQUIRED'
   | 'PLACE_NAME_DUPLICATE'
+  | 'PLACE_LIMIT'
   | 'GEOCODE_NOT_FOUND'
   | 'PLACE_NO_RESTAURANTS'
   | 'EXTERNAL_API_UNAVAILABLE'
@@ -23,6 +24,7 @@ export const fail = (code: ErrorCode, params?: Record<string, string | number>):
 export const ERROR_MESSAGES: Record<ErrorCode, (p?: Record<string, string | number>) => string> = {
   AUTH_REQUIRED: () => '로그인이 필요합니다',
   PLACE_NAME_DUPLICATE: () => '같은 이름의 장소가 이미 있습니다',
+  PLACE_LIMIT: (p) => `장소는 최대 ${p?.max ?? 10}개까지 등록할 수 있습니다`,
   GEOCODE_NOT_FOUND: () => '주소를 찾을 수 없습니다. 도로명 주소로 다시 입력해 주세요',
   PLACE_NO_RESTAURANTS: () => '근처에서 식당을 찾지 못했습니다. 반경을 늘려 보세요',
   EXTERNAL_API_UNAVAILABLE: () => '지금은 장소를 만들 수 없습니다. 잠시 후 다시 시도해 주세요',

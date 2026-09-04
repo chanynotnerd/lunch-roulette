@@ -2,19 +2,28 @@
  * 영업시간 보정 시드 스크립트 (스펙 10)
  *
  *   npm run seed:hours                 data/hours-overrides.json 을 restaurants 에 반영
- *   npm run seed:hours -- --reset <google_place_id>
- *                                      해당 식당의 hours_source 를 google 로 되돌림
+ *   npm run seed:hours -- --reset <key>
+ *                                      해당 식당을 DEFAULT_HOURS + hours_source='default' 로 되돌림
+ *
+ * 보정 파일의 키는 restaurants.google_place_id 컬럼 값이다.
+ *   - 카카오 로컬 API(D17)로 들어온 식당: "kakao:<카카오 장소 id>"  (예: "kakao:12345678")
+ *   - Google Places 로 들어온 식당:          "ChIJ…" 형식의 place id
+ * 두 형식 중 어느 쪽도 아닌 키는 경고만 내고 그대로 진행한다(행이 없으면 건너뜀으로 출력됨).
+ *
+ * 형식 검증은 src/rules/hours-schema.ts 의 validateHours 를 쓴다. 항목을 전부 검증한 뒤 하나라도 오류가 있으면
+ * 아무것도 쓰지 않는다.
  *
  * .env.local 의 NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY 를 읽는다.
  */
 import { readFileSync, existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { createClient } from '@supabase/supabase-js'
-import { DAY_KEYS } from '../src/rules/types'
+import { DEFAULT_HOURS } from '../src/config/default-hours'
+import { isPlainObject, validateHours } from '../src/rules/hours-schema'
 
 const ROOT = resolve(__dirname, '..')
 const OVERRIDES_PATH = resolve(ROOT, 'data', 'hours-overrides.json')
-const TIME_RE = /^([01]\d|2[0-4]):[0-5]\d$/
+const KEY_RE = /^(kakao:.+|ChIJ.+)$/
 
 function loadEnvLocal(): void {
   const path = resolve(ROOT, '.env.local')
@@ -36,59 +45,18 @@ function loadEnvLocal(): void {
   }
 }
 
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === 'object' && v !== null && !Array.isArray(v)
-}
-
-function validateDay(day: unknown, path: string, errors: string[]): void {
-  if (!isRecord(day)) {
-    errors.push(`${path}: 객체가 아닙니다`)
-    return
-  }
-  if (day.closed === true) {
-    const extra = Object.keys(day).filter((k) => k !== 'closed')
-    if (extra.length) errors.push(`${path}: closed 와 함께 다른 키(${extra.join(', ')})가 있습니다`)
-    return
-  }
-  if (typeof day.open !== 'string' || !TIME_RE.test(day.open)) {
-    errors.push(`${path}.open: "HH:MM" 형식이 아닙니다 (${String(day.open)})`)
-  }
-  if (typeof day.close !== 'string' || !TIME_RE.test(day.close)) {
-    errors.push(`${path}.close: "HH:MM" 형식이 아닙니다 (${String(day.close)})`)
-  }
-  if (day.break !== undefined) {
-    if (!isRecord(day.break)) {
-      errors.push(`${path}.break: 객체가 아닙니다`)
-    } else {
-      if (typeof day.break.start !== 'string' || !TIME_RE.test(day.break.start)) {
-        errors.push(`${path}.break.start: "HH:MM" 형식이 아닙니다`)
-      }
-      if (typeof day.break.end !== 'string' || !TIME_RE.test(day.break.end)) {
-        errors.push(`${path}.break.end: "HH:MM" 형식이 아닙니다`)
-      }
-    }
+function warnKeyFormat(key: string): void {
+  if (!KEY_RE.test(key)) {
+    console.warn(`경고: ${key}: 키가 "kakao:<id>" 나 "ChIJ…" 형식이 아닙니다. google_place_id 와 일치하는지 확인하세요.`)
   }
 }
 
 function validateEntry(placeId: string, entry: unknown, errors: string[]): void {
-  if (!isRecord(entry)) {
+  if (!isPlainObject(entry)) {
     errors.push(`${placeId}: 객체가 아닙니다`)
     return
   }
-  const hours = entry.hours
-  if (!isRecord(hours)) {
-    errors.push(`${placeId}.hours: 객체가 아닙니다`)
-    return
-  }
-  for (const key of DAY_KEYS) {
-    if (!(key in hours)) {
-      errors.push(`${placeId}.hours.${key}: 요일이 빠졌습니다`)
-      continue
-    }
-    validateDay(hours[key], `${placeId}.hours.${key}`, errors)
-  }
-  const unknown = Object.keys(hours).filter((k) => !(DAY_KEYS as readonly string[]).includes(k))
-  if (unknown.length) errors.push(`${placeId}.hours: 알 수 없는 요일 키(${unknown.join(', ')})`)
+  errors.push(...validateHours(entry.hours, `${placeId}.hours`))
 }
 
 function makeClient() {
@@ -102,10 +70,11 @@ function makeClient() {
 }
 
 async function reset(placeId: string): Promise<void> {
+  warnKeyFormat(placeId)
   const supabase = makeClient()
   const { data, error } = await supabase
     .from('restaurants')
-    .update({ hours_source: 'google' })
+    .update({ hours: DEFAULT_HOURS, hours_source: 'default' })
     .eq('google_place_id', placeId)
     .select('id')
   if (error) {
@@ -116,7 +85,7 @@ async function reset(placeId: string): Promise<void> {
     console.log(`건너뜀 (행 없음): ${placeId}`)
     return
   }
-  console.log(`hours_source 를 google 로 되돌림: ${placeId}`)
+  console.log(`기본 영업시간(DEFAULT_HOURS, hours_source=default) 으로 되돌림: ${placeId}`)
 }
 
 async function apply(): Promise<void> {
@@ -128,13 +97,16 @@ async function apply(): Promise<void> {
     console.error(e instanceof Error ? e.message : String(e))
     process.exit(1)
   }
-  if (!isRecord(parsed)) {
+  if (!isPlainObject(parsed)) {
     console.error('보정 파일의 최상위는 객체여야 합니다')
     process.exit(1)
   }
 
   const errors: string[] = []
-  for (const [placeId, entry] of Object.entries(parsed)) validateEntry(placeId, entry, errors)
+  for (const [placeId, entry] of Object.entries(parsed)) {
+    warnKeyFormat(placeId)
+    validateEntry(placeId, entry, errors)
+  }
   if (errors.length) {
     console.error(`보정 파일 형식 오류 ${errors.length}건. 아무것도 쓰지 않습니다.`)
     for (const e of errors) console.error(`  - ${e}`)
@@ -181,7 +153,7 @@ async function main(): Promise<void> {
   if (resetIdx >= 0) {
     const placeId = args[resetIdx + 1]
     if (!placeId) {
-      console.error('사용법: npm run seed:hours -- --reset <google_place_id>')
+      console.error('사용법: npm run seed:hours -- --reset <kakao:<id> 또는 ChIJ…>')
       process.exit(1)
     }
     await reset(placeId)
