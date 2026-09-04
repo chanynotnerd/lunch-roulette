@@ -31,18 +31,19 @@ Google 로그인 → 장소(주소) 등록 → 카카오 로컬 API로 반경 �
 
 - 스펙(source of truth): `docs/superpowers/specs/2026-09-04-lunch-roulette/` 01~14. 13은 백로그, 14는 유저플로우 해피케이스(Mermaid 원본).
 - 계획: `docs/superpowers/plans/2026-09-04-lunch-roulette/README.md` (배포 결과 섹션 포함).
-- Figma용 SVG: `docs/figma/userflow-happy-case-1.svg`(플로우), `-2.svg`(상태 전이).
+- FigJam 보드(완료): https://www.figma.com/board/TYKrI6JL3kwlVwbXDZyTXL. 예비용 SVG: `docs/figma/userflow-happy-case-1.svg`(플로우), `-2.svg`(상태 전이).
 - 코드리뷰 결과(다른 세션): `docs/reviews/2026-09-04-code-review.md`.
 
 ## 다음 할 일 (우선순위)
 
-1. **Figma MCP 연결**: 사용자가 `claude mcp add --transport http figma https://mcp.figma.com/mcp` 실행 후 세션 재시작. 첫 호출에서 Figma 로그인 승인. 무료 플랜이라 월 6회 호출 제한 가능성이 있으니 호출을 아낀다.
-2. **FigJam에 해피케이스 그리기**: `create_new_file`로 FigJam 파일 생성 → `generate_diagram`에 스펙 14의 Mermaid(플로우차트)를 그대로 전달. 노드 이름은 S1/F1 번호 유지. 실패하면 SVG 수동 가져오기로 대체.
-3. 테스트 끝나면 Vercel의 `ROULETTE_ALLOW_ANY_TIME` 제거 후 재배포.
-4. 다른 세션의 코드리뷰 커밋 확인 후 재배포.
-5. worktree 정리(사용자 확인 후): `git worktree remove ../lunch-roulette-A` (B, C, D 동일) + `git branch -d session-a session-b session-c session-d`.
-6. GitHub 원격 연결과 Vercel Git 연동(선택).
-7. 백로그(스펙 13) 순서대로.
+1. ~~Figma MCP 연결~~ 완료. 이 프로젝트 Local 범위로 등록됨(`claude mcp get figma`). 플랜은 "김찬영의 팀"(team::1676518265841055462, starter) 하나.
+2. ~~FigJam에 해피케이스 그리기~~ 완료. `generate_diagram`이 파일을 직접 만들므로 `create_new_file`은 필요 없다. 보드 URL은 스펙 14에 기록.
+3. **(대기) Figma Design 유저플로우**: 사용자가 디자인을 바꿔 Vercel에 배포한 뒤 진행. 프로덕션 화면을 Chrome으로 캡처 → `create_new_file`(design) → `upload_assets`로 이미지 일괄 업로드 → `use_figma`로 S1→S4 순서 배치와 화살표. Figma 호출 약 3회(Starter 플랜 월 20회 한도, 이미 5회 사용). 로그인 후 화면은 사용자가 Chrome에서 직접 로그인한 뒤 캡처. 돌리기·확정 캡처는 세션이 생기므로 사용자 확인 후.
+4. 테스트 끝나면 Vercel의 `ROULETTE_ALLOW_ANY_TIME` 제거 후 재배포.
+5. 다른 세션의 코드리뷰 커밋 확인 후 재배포.
+6. worktree 정리(사용자 확인 후): `git worktree remove ../lunch-roulette-A` (B, C, D 동일) + `git branch -d session-a session-b session-c session-d`.
+7. GitHub 원격 연결과 Vercel Git 연동(선택).
+8. 백로그(스펙 13) 순서대로.
 
 ## 작업 규칙 (이 프로젝트에서 합의된 것)
 

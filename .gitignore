@@ -30,5 +30,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-.vercel
-.env*
+
+# superpowers 브레인스토밍 비주얼 컴패니언 세션 파일
+.superpowers/

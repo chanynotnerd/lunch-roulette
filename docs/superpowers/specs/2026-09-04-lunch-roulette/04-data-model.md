@@ -23,15 +23,18 @@
 | 컬럼 | 타입 | 설명 |
 |---|---|---|
 | id | uuid | PK |
-| google_place_id | text | 유일 |
+| google_place_id | text | 유일. 외부 소스의 장소 식별자. Google 은 place id(`ChIJ…`), 카카오 로컬 API(D17)는 `kakao:<카카오 장소 id>` |
 | name | text | |
 | address | text | |
 | lat, lng | double | |
 | hours | jsonb, null 허용 | 요일별 영업시간. 형식은 아래 |
-| hours_source | text | google, override, none 중 하나 |
-| fetched_at | timestamptz | 마지막 Google 조회 시각 |
+| hours_source | text | google, kakao, default, override, none 중 하나 (마이그레이션 0004). default 는 영업시간을 주지 않는 소스(카카오)에 기본 영업시간을 넣은 행 |
+| fetched_at | timestamptz | 마지막 외부 API(Google/카카오) 조회 시각 |
 
 hours가 null이면 hours_source는 none이며 룰렛 후보에서 제외된다. [05-rules.md](05-rules.md)
+hours는 null이거나 JSON object여야 한다(check 제약, 마이그레이션 0005).
+
+DB 함수 권한(마이그레이션 0005): public 스키마의 함수는 anon, authenticated, PUBLIC에 EXECUTE가 자동 부여되지 않는다. 브라우저에서 호출해야 하는 함수를 새로 만들면 그 마이그레이션에서 명시적으로 grant한다.
 
 ### hours JSON 형식
 
@@ -78,6 +81,7 @@ PK는 (place_id, restaurant_id). 여러 사용자의 장소가 같은 식당 행
 | confirmed_at | timestamptz, null 허용 | |
 
 제약: (user_id, slot_date, slot) 유일. 이 제약이 "슬롯당 세션 1개"를 DB 차원에서 보장한다.
+chosen_restaurant_id는 null이거나 candidate_ids 안의 값이어야 한다(check 제약, 마이그레이션 0005). 다시 돌리기와 확정이 경합해도 후보 밖 식당이 확정되지 않는다.
 status가 confirmed인 행이 곧 날짜별 기록이다. 기록 테이블은 따로 두지 않는다.
 만료는 저장하지 않고 조회 시 판정한다. [05-rules.md](05-rules.md)
 

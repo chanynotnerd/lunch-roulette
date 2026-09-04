@@ -14,6 +14,7 @@
 | GEOCODE_NOT_FOUND | F2 | 없음 | 주소를 찾을 수 없습니다. 도로명 주소로 다시 입력해 주세요 |
 | PLACE_NO_RESTAURANTS | F2 | 장소는 저장 | 근처에서 식당을 찾지 못했습니다. 반경을 늘려 보세요 |
 | EXTERNAL_API_UNAVAILABLE | F2 | 없음 | 지금은 장소를 만들 수 없습니다. 잠시 후 다시 시도해 주세요 |
+| PLACE_LIMIT | F2 | 없음 | 장소는 최대 {max}개까지 등록할 수 있습니다 (사용자당 10개, 외부 API 호출 전에 검사) |
 | PLACE_FORBIDDEN | F3, F4 | 없음 | 접근할 수 없는 장소입니다 |
 | OUTSIDE_SLOT | F4 | 없음 | 다음 룰렛은 HH:MM에 열립니다 |
 | NOT_ENOUGH_OPEN | F4, F5 | 없음 | 지금 영업 중인 식당이 N곳뿐입니다 |
@@ -21,6 +22,7 @@
 | REROLL_ALREADY_USED | F5 | 없음 | 다시 돌리기는 한 번만 가능합니다 |
 | NOT_A_CANDIDATE | F6 | 없음 | 후보에 없는 식당입니다 |
 | INVALID_INPUT | F2 | 없음 | {field}은(는) 1~{max}자로 입력해 주세요 (서버 액션은 직접 POST로도 호출되므로 서버에서 다시 검사) |
+| (로그인 실패) | F1 OAuth 콜백 → `/login?error=…` | 없음 | 로그인에 실패했습니다. 다시 시도해 주세요 |
 
 흐름 번호는 [06-flows.md](06-flows.md)를 가리킨다.
 
