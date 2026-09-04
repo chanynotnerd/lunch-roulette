@@ -6,7 +6,7 @@
 
 **Architecture:** Next.js App Router 앱 하나. 모든 규칙 판단은 서버 액션에서 Asia/Seoul 기준으로 수행하고, 쓰기는 서비스 롤 키로만 한다. 순수 함수(rules)와 외부 API 어댑터(places)를 서버 액션(actions)과 분리해 세션별로 병렬 구현한다.
 
-**Tech Stack:** Next.js 15 (App Router, TypeScript, src 디렉터리), @supabase/supabase-js, @supabase/ssr, Vitest, tsx. Supabase (Postgres, Auth Google), Vercel, Google Geocoding API, Google Places API (New) Text Search.
+**Tech Stack:** Next.js 16 (App Router, TypeScript, src 디렉터리), @supabase/supabase-js, @supabase/ssr, Vitest, tsx. Supabase (Postgres, Auth Google), Vercel, 카카오 로컬 API (D17로 Google에서 전환. Google 어댑터는 남겨 둠).
 
 **Spec:** `docs/superpowers/specs/2026-09-04-lunch-roulette/README.md` (인덱스). 각 작업은 관련 스펙 파일을 명시한다.
 
@@ -19,7 +19,7 @@
 - hours가 null인 식당은 후보에서 제외. (스펙 05, D14)
 - 서버 액션 응답은 `{ ok: true, data }` 또는 `{ ok: false, code, params }`. 예외를 던지지 않는다. 오류 코드는 스펙 08의 11개 + UNEXPECTED. (스펙 08)
 - 브라우저에서 Supabase에 쓰지 않는다. 모든 쓰기는 서비스 롤 클라이언트로. (스펙 03)
-- Google API 요청 필드는 id, displayName, formattedAddress, location, regularOpeningHours로 제한. (스펙 09)
+- 식당 검색 소스는 PLACES_PROVIDER 환경변수로 고른다. 기본은 kakao. (스펙 09, D17)
 - 1시간 제약에 따른 축소: 단위 테스트는 rules와 places/convert만. 서버 액션 통합 테스트는 미룬다. 화면은 스타일 없이 동작 우선. 스파이크(스펙 12)는 세션 C의 첫 실제 장소 생성으로 대체. (합의 사항)
 
 ---
@@ -85,3 +85,11 @@ GOOGLE_MAPS_API_KEY=...
 - [ ] **장소 화면 두 곳에 공통 하단 탭 적용** (스펙 07 공통). `src/app/places/page.tsx`, `src/app/places/[id]/page.tsx`의 인라인 `<nav>`를 세션 D의 `src/app/components/Nav.tsx`로 교체한다. 현재는 기록 탭으로 가는 링크가 없다.
 - [ ] **수동 확인 시나리오 추가**: 장소 생성 → 돌리기 → 확정 → 그 장소 삭제 → 기록 화면에 "삭제된 장소" 표시. (0003 마이그레이션 회귀 확인)
 - [ ] 참고: 실제 설치된 Next는 16이다. `src/middleware.ts`는 `proxy.ts` 관례로 바뀌었으므로 `src/proxy.ts`로 이름을 바꿨다.
+
+## 배포 결과 (2026-09-04)
+
+- 프로덕션 URL: https://lunch-roulette-sooty.vercel.app
+- Vercel 프로젝트: lunch-roulette (boltwriter721-2668s-projects). 설정은 (git 제외).
+- Vercel 환경변수(production, preview): NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, KAKAO_REST_API_KEY, PLACES_PROVIDER=kakao, ADMIN_EMAILS, NEXT_PUBLIC_SITE_URL(production만). ROULETTE_ALLOW_ANY_TIME은 넣지 않음.
+- Supabase Redirect URLs: http://localhost:3000/auth/callback, https://lunch-roulette-sooty.vercel.app/auth/callback
+- 재배포: - 세션별 계획 파일(A~E)은 만들지 않고 에이전트 프롬프트로 대체했다. 남은 작업은 스펙 13-backlog.md 참조.
