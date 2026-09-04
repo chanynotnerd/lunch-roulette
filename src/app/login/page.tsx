@@ -9,7 +9,7 @@ export default async function LoginPage({ searchParams }: Props) {
 
   return (
     <main>
-      <h1>점심 룰렛</h1>
+      <h1>식사 룰렛</h1>
       {error && <p role="alert">로그인에 실패했습니다. 다시 시도해 주세요</p>}
       <form action={signInWithGoogle}>
         <button type="submit">Google로 로그인</button>

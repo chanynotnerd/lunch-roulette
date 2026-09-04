@@ -21,7 +21,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ p
     if (places.code === 'AUTH_REQUIRED') redirect('/login')
     return (
       <main style={mainStyle}>
-        <h1>점심 룰렛</h1>
+        <h1>식사 룰렛</h1>
         <p role="alert">{ERROR_MESSAGES[places.code](places.params)}</p>
         <Nav />
       </main>
@@ -31,7 +31,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ p
   if (places.data.length === 0) {
     return (
       <main style={mainStyle}>
-        <h1>점심 룰렛</h1>
+        <h1>식사 룰렛</h1>
         <p>장소를 먼저 등록해 주세요</p>
         <Link href="/places">장소 관리로 가기</Link>
         <Nav />
@@ -45,7 +45,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ p
 
   return (
     <main style={mainStyle}>
-      <h1>점심 룰렛</h1>
+      <h1>식사 룰렛</h1>
       <AdminResetButton />
       <PlacePicker places={places.data.map((p) => ({ id: p.id, name: p.name }))} selectedId={selectedPlaceId} />
       {state.ok ? (
