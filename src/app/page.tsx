@@ -4,6 +4,7 @@ import { listPlaces } from '@/actions/places'
 import { getHomeState } from '@/actions/roulette'
 import { ERROR_MESSAGES } from '@/lib/result'
 import Nav from './components/Nav'
+import AdminResetButton from './components/AdminResetButton'
 import PlacePicker from './components/PlacePicker'
 import RouletteBoard from './components/RouletteBoard'
 
@@ -45,6 +46,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ p
   return (
     <main style={mainStyle}>
       <h1>점심 룰렛</h1>
+      <AdminResetButton />
       <PlacePicker places={places.data.map((p) => ({ id: p.id, name: p.name }))} selectedId={selectedPlaceId} />
       {state.ok ? (
         <RouletteBoard state={state.data} placeId={selectedPlaceId} />
