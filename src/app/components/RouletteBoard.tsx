@@ -136,10 +136,18 @@ export default function RouletteBoard({ state, placeId }: { state: HomeState; pl
     )
   }
 
+  const placeNote = (s: { placeId: string | null; placeName: string }) =>
+    s.placeId !== placeId ? (
+      <p style={{ color: '#a60', margin: '4px 0' }}>
+        오늘 이 슬롯의 룰렛은 이미 &quot;{s.placeName}&quot;에서 돌렸습니다. 슬롯당 룰렛은 한 번입니다.
+      </p>
+    ) : null
+
   if (state.kind === 'confirmed') {
     const c = state.chosen
     return (
       <section>
+        {placeNote(state)}
         <h2 style={{ margin: '8px 0' }}>
           오늘 {state.slotLabel}: {c.name}
         </h2>
@@ -158,7 +166,8 @@ export default function RouletteBoard({ state, placeId }: { state: HomeState; pl
   const picked = pickId ? state.candidates.find((c) => c.id === pickId) : null
   return (
     <section>
-      <p>오늘 {state.slotLabel}</p>
+      <p>오늘 {state.slotLabel} · {state.placeName}</p>
+      {placeNote(state)}
       {spinning ? (
         <div
           style={{

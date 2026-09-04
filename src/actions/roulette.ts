@@ -29,11 +29,13 @@ export type HomeState =
       kind: 'open'
       sessionId: string
       slotLabel: string
+      placeId: string | null
+      placeName: string
       candidates: Candidate[]
       rerollUsed: boolean
       poolNames: string[]
     }
-  | { kind: 'confirmed'; slotLabel: string; chosen: Candidate; nextSlotAt: string; leveledUp: boolean }
+  | { kind: 'confirmed'; slotLabel: string; placeId: string | null; placeName: string; chosen: Candidate; nextSlotAt: string; leveledUp: boolean }
 
 type Admin = ReturnType<typeof createAdminClient>
 
@@ -145,14 +147,24 @@ async function buildCandidates(admin: Admin, userId: string, ids: string[]): Pro
   return out
 }
 
+async function sessionPlaceName(admin: Admin, placeId: string | null): Promise<string> {
+  if (!placeId) return '삭제된 장소'
+  const { data } = await admin.from('places').select('name').eq('id', placeId).maybeSingle()
+  return (data as { name: string } | null)?.name ?? '삭제된 장소'
+}
+
 async function stateFromSession(admin: Admin, userId: string, session: SessionRow, now: Date): Promise<HomeState> {
   const slotLabel = SLOTS[session.slot].label
+  // 세션은 슬롯당 하나라 선택한 장소와 다를 수 있다. 어느 장소에서 돌린 룰렛인지 화면에 알려 준다.
+  const placeName = await sessionPlaceName(admin, session.place_id)
   if (session.status === 'confirmed' && session.chosen_restaurant_id) {
     const [chosen] = await buildCandidates(admin, userId, [session.chosen_restaurant_id])
     if (!chosen) throw new Error(`chosen restaurant missing: ${session.chosen_restaurant_id}`)
     return {
       kind: 'confirmed',
       slotLabel,
+      placeId: session.place_id,
+      placeName,
       chosen,
       nextSlotAt: nextSlotAfter(session.slot, now),
       // chosen.xp는 이번 확정을 포함한 누적 횟수다.
@@ -168,6 +180,8 @@ async function stateFromSession(admin: Admin, userId: string, session: SessionRo
     kind: 'open',
     sessionId: session.id,
     slotLabel,
+    placeId: session.place_id,
+    placeName,
     candidates,
     rerollUsed: session.reroll_used && !isAnyTimeMode(),
     poolNames: pool.map((r) => r.name),
