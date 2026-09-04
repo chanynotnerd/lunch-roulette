@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import Nav from '@/app/components/Nav'
 import { redirect } from 'next/navigation'
 import { listPlaceRestaurants } from '@/actions/places'
 import { ERROR_MESSAGES } from '@/lib/result'
@@ -16,7 +15,10 @@ export default async function PlaceRestaurantsPage({
   if (!result.ok && result.code === 'AUTH_REQUIRED') redirect('/login')
 
   return (
-    <main style={{ maxWidth: 480, margin: '0 auto', padding: 16, paddingBottom: 72 }}>
+    <>
+      <p style={{ margin: '0 0 8px' }}>
+        <Link href="/places">← 장소 목록</Link>
+      </p>
       <h1>연결된 식당</h1>
       {!result.ok ? (
         <p role="alert">{ERROR_MESSAGES[result.code](result.params)}</p>
@@ -41,7 +43,6 @@ export default async function PlaceRestaurantsPage({
           ))}
         </ul>
       )}
-      <Nav />
-    </main>
+    </>
   )
 }

@@ -25,6 +25,7 @@
 | 12 | [12-pre-implementation-spike.md](12-pre-implementation-spike.md) | 검증 단계 | 구현 전 데이터 품질 스파이크 |
 | 13 | [13-backlog.md](13-backlog.md) | 백로그 | 추후 버전에서 작업할 항목 목록 |
 | 14 | [14-userflow-happy-case.md](14-userflow-happy-case.md) | 유저플로우 | 해피케이스 시나리오와 다이어그램. Figma(FigJam)의 원본 |
+| 15 | [15-visual-design.md](15-visual-design.md) | 시각 디자인 | 단골 도장 카드 컨셉, 토큰, 서체, 레이아웃, 움직임, 접근성 |
 
 ## 읽는 순서
 

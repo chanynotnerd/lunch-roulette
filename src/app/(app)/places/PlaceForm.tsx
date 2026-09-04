@@ -39,7 +39,6 @@ export default function PlaceForm() {
       setName('')
       setAddress('')
       setRadius(500)
-      router.refresh()
     })
   }
 

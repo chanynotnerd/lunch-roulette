@@ -30,7 +30,6 @@ export default function DeletePlaceButton({
         return
       }
       setConfirming(false)
-      router.refresh()
     })
   }
 

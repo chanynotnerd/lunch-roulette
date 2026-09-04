@@ -1,8 +1,7 @@
 import { redirect } from 'next/navigation'
 import { listRecords } from '@/actions/records'
 import { ERROR_MESSAGES } from '@/lib/result'
-import Nav from '../components/Nav'
-import AdminResetButton from '../components/AdminResetButton'
+import AdminResetButton from '@/app/components/AdminResetButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,7 +11,7 @@ export default async function RecordsPage() {
   if (!result.ok && result.code === 'AUTH_REQUIRED') redirect('/login')
 
   return (
-    <main style={{ maxWidth: 480, margin: '0 auto', padding: '16px 16px 72px' }}>
+    <>
       <h1>기록</h1>
       <AdminResetButton />
       {!result.ok ? (
@@ -39,7 +38,6 @@ export default async function RecordsPage() {
           ))}
         </ul>
       )}
-      <Nav />
-    </main>
+    </>
   )
 }

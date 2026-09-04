@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import Nav from '@/app/components/Nav'
 import { redirect } from 'next/navigation'
 import { listPlaces } from '@/actions/places'
 import { ERROR_MESSAGES } from '@/lib/result'
@@ -13,7 +12,7 @@ export default async function PlacesPage() {
   if (!result.ok && result.code === 'AUTH_REQUIRED') redirect('/login')
 
   return (
-    <main style={{ maxWidth: 480, margin: '0 auto', padding: 16, paddingBottom: 72 }}>
+    <>
       <h1>장소 관리</h1>
 
       <section>
@@ -49,7 +48,6 @@ export default async function PlacesPage() {
         <h2>장소 추가</h2>
         <PlaceForm />
       </section>
-      <Nav />
-    </main>
+    </>
   )
 }

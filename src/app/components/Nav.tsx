@@ -1,28 +1,29 @@
+'use client'
+
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { signOut } from '@/actions/auth'
 
-/** 하단 탭: 홈, 장소, 기록 + 로그아웃. 스펙 07 공통. */
+const TABS = [
+  { href: '/', label: '홈' },
+  { href: '/places', label: '장소' },
+  { href: '/records', label: '기록' },
+] as const
+
+/** 하단 탭: 홈, 장소, 기록 + 로그아웃. 현재 화면은 aria-current로 표시한다. 스펙 07 공통, 15 접근성. */
 export default function Nav() {
+  const pathname = usePathname()
+  const isCurrent = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href))
+
   return (
-    <nav
-      style={{
-        position: 'fixed',
-        left: 0,
-        right: 0,
-        bottom: 0,
-        display: 'flex',
-        justifyContent: 'space-around',
-        alignItems: 'center',
-        padding: '10px 8px',
-        borderTop: '1px solid #ddd',
-        background: '#fff',
-      }}
-    >
-      <Link href="/">홈</Link>
-      <Link href="/places">장소</Link>
-      <Link href="/records">기록</Link>
+    <nav className="tabbar" aria-label="주요 화면">
+      {TABS.map((t) => (
+        <Link key={t.href} href={t.href} aria-current={isCurrent(t.href) ? 'page' : undefined}>
+          {t.label}
+        </Link>
+      ))}
       <form action={signOut}>
-        <button type="submit" style={{ background: 'none', border: 'none', padding: 0, color: '#666', cursor: 'pointer' }}>
+        <button type="submit" className="tabbar-signout">
           로그아웃
         </button>
       </form>

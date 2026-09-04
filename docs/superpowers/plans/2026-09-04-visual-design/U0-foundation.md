@@ -1,3 +1,22 @@
+# 세션 U0: 기반 (토큰, 서체, CSS 클래스, 레이아웃, 하단 탭, LevelStamps)
+
+[← 인덱스](README.md). Global Constraints는 인덱스를 따른다. **main에서 단독으로, 가장 먼저** 실행하고 커밋한다.
+
+---
+
+### Task U0-1: 토큰, 서체, 모든 컴포넌트 클래스
+
+**Files:**
+- Modify: `src/app/globals.css` (전체 교체)
+- Modify: `src/app/layout.tsx` (전체 교체)
+
+**Interfaces:**
+- Produces: CSS 클래스 이름. A, B, C, D가 이 이름만 쓴다. `page`, `page-title`, `section`, `section-title`, `muted`, `small`, `alert`, `note`, `sr-only`, `back-link`, `btn`, `btn-primary`, `btn-block`, `btn-text`, `btn-admin`, `tabbar`, `tabbar-signout`, `home-top`, `place-select-wrap`, `place-select`, `slot-label`, `board`, `board-name`, `board-caption`, `tickets`, `ticket`, `ticket-main`, `ticket-name`, `ticket-address`, `ticket-stub`, `confirm`, `confirm-actions`, `result`, `result-slot`, `result-name`, `seal`, `is-stamping`, `levelup`, `stamps`, `stamps-compact`, `stamps-row`, `stamp`, `is-on`, `stamps-name`, `stamps-next`, `rows`, `row`, `row-title`, `row-meta`, `stubs`, `stub`, `stub-meta`, `stub-name`, `form`, `field`, `input`, `login`, `login-card`, `login-title`.
+- Produces: CSS 변수 `--font-display`, `--font-body`. `layout.tsx`가 next/font 변수 `--font-display-src`, `--font-body-src`를 `<html>`에 붙인다.
+
+- [ ] **Step 1: `src/app/globals.css`를 아래 내용으로 통째로 바꾼다**
+
+```css
 /* 스펙 15. 토큰은 여기 한 곳에만 둔다. */
 :root {
   --paper: #ffffff;
@@ -613,3 +632,195 @@ select {
     transition: none !important;
   }
 }
+```
+
+- [ ] **Step 2: `src/app/layout.tsx`를 아래 내용으로 바꾼다**
+
+```tsx
+import type { Metadata, Viewport } from 'next'
+import { Black_Han_Sans, IBM_Plex_Sans_KR } from 'next/font/google'
+import './globals.css'
+
+// 스펙 15. subsets는 preload 대상만 정한다. 한글 조각은 unicode-range로 필요할 때 내려받는다.
+const display = Black_Han_Sans({ weight: '400', subsets: ['latin'], variable: '--font-display-src', display: 'swap' })
+const body = IBM_Plex_Sans_KR({ weight: ['400', '500', '700'], subsets: ['latin'], variable: '--font-body-src', display: 'swap' })
+
+export const metadata: Metadata = {
+  title: '식사 룰렛',
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#ffffff',
+}
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="ko" className={`${display.variable} ${body.variable}`}>
+      <body>{children}</body>
+    </html>
+  )
+}
+```
+
+- [ ] **Step 3: 타입 검사와 린트**
+
+Run: `npx tsc --noEmit; npm run lint`
+Expected: 둘 다 오류 0. (next/font는 빌드·개발 서버 시작 시 Google Fonts에 접속한다. 네트워크가 막혀 실패하면 오류 전문을 보고하고 멈춘다. 대체 경로를 임의로 만들지 않는다.)
+
+- [ ] **Step 4: 개발 서버로 서체 확인**
+
+Run: `npm run dev` 후 브라우저에서 `http://localhost:3000/login` 열기.
+Expected: 페이지가 뜨고 DevTools의 Computed 탭에서 body의 font-family가 `__IBM_Plex_Sans_KR_`로 시작한다. 화면 스타일은 아직 옛 모습이어도 된다.
+
+---
+
+### Task U0-2: (app) 라우트 그룹 레이아웃과 하단 탭
+
+**Files:**
+- Create: `src/app/(app)/layout.tsx`
+- Modify: `src/app/components/Nav.tsx` (전체 교체)
+- Modify: `src/app/(app)/page.tsx`, `src/app/(app)/places/page.tsx`, `src/app/(app)/places/[id]/page.tsx`, `src/app/(app)/records/page.tsx` (`<main>`과 `<Nav />` 제거, import 경로 수정만)
+
+**Interfaces:**
+- Consumes: Task U0-1의 `page`, `tabbar`, `tabbar-signout` 클래스.
+- Produces: 페이지 컴포넌트는 `<main>` 없이 프래그먼트(`<>…</>`)로 자식만 돌려준다. A, B, C가 이 전제로 페이지를 다시 쓴다.
+
+- [ ] **Step 1: `src/app/(app)/layout.tsx` 생성**
+
+```tsx
+import Nav from '@/app/components/Nav'
+
+/** 홈, 장소, 기록 공통 뼈대. 로그인은 이 그룹 밖이다. 스펙 07 공통. */
+export default function AppLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <main className="page">{children}</main>
+      <Nav />
+    </>
+  )
+}
+```
+
+- [ ] **Step 2: `src/app/components/Nav.tsx`를 아래 내용으로 바꾼다**
+
+```tsx
+'use client'
+
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { signOut } from '@/actions/auth'
+
+const TABS = [
+  { href: '/', label: '홈' },
+  { href: '/places', label: '장소' },
+  { href: '/records', label: '기록' },
+] as const
+
+/** 하단 탭: 홈, 장소, 기록 + 로그아웃. 현재 화면은 aria-current로 표시한다. 스펙 07 공통, 15 접근성. */
+export default function Nav() {
+  const pathname = usePathname()
+  const isCurrent = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href))
+
+  return (
+    <nav className="tabbar" aria-label="주요 화면">
+      {TABS.map((t) => (
+        <Link key={t.href} href={t.href} aria-current={isCurrent(t.href) ? 'page' : undefined}>
+          {t.label}
+        </Link>
+      ))}
+      <form action={signOut}>
+        <button type="submit" className="tabbar-signout">
+          로그아웃
+        </button>
+      </form>
+    </nav>
+  )
+}
+```
+
+- [ ] **Step 3: 네 페이지의 뼈대만 맞춘다**
+
+각 파일에서 `<main …>`을 `<>`로, `</main>`을 `</>`로 바꾸고 `<Nav />` 줄과 `Nav` import 줄을 지운다. 본문 스타일은 A, B, C가 바꾸므로 여기서는 손대지 않는다.
+
+`src/app/(app)/page.tsx`는 상대 경로 import를 절대 경로로 바꾸고 `mainStyle` 상수를 지운다. 오류 분기(`if (!places.ok)`) 안의 `<main style={mainStyle}>`도 `<>`로 바꾼다.
+
+```tsx
+import Nav from './components/Nav'                       // 삭제
+import AdminResetButton from './components/AdminResetButton'  // → from '@/app/components/AdminResetButton'
+import PlacePicker from './components/PlacePicker'       // → from '@/app/components/PlacePicker'
+import RouletteBoard from './components/RouletteBoard'   // → from '@/app/components/RouletteBoard'
+```
+
+`src/app/(app)/places/page.tsx`, `src/app/(app)/places/[id]/page.tsx`는 `import Nav from '@/app/components/Nav'` 줄을 지운다. `src/app/(app)/records/page.tsx`는 `import Nav from '../components/Nav'`와 `import AdminResetButton from '../components/AdminResetButton'`을 각각 지우고 `import AdminResetButton from '@/app/components/AdminResetButton'`로 바꾼다.
+
+- [ ] **Step 4: 타입 검사, 린트, 화면 확인**
+
+Run: `npx tsc --noEmit; npm run lint`
+Expected: 오류 0.
+
+브라우저: `/`, `/places`, `/records` 이동. 하단 탭이 한 번만 보이고, 현재 화면 탭이 검은 굵은 글씨에 빨간 밑줄. 로그아웃이 동작한다.
+
+---
+
+### Task U0-3: LevelStamps 컴포넌트
+
+**Files:**
+- Create: `src/app/components/LevelStamps.tsx`
+
+**Interfaces:**
+- Consumes: `LEVELS` (`src/config/levels.ts`, `{ level, name, xp }[]` 5개). Task U0-1의 `stamps*` 클래스.
+- Produces: `LevelStamps({ level: number; levelName: string; nextIn: number | null; compact?: boolean })`. `compact`면 세로 배치에 "다음 레벨까지"를 숨긴다(식권 절취선 영역용). A, B, C가 쓴다.
+
+- [ ] **Step 1: 파일 생성**
+
+```tsx
+import { LEVELS } from '@/config/levels'
+
+type Props = {
+  level: number
+  levelName: string
+  nextIn: number | null
+  /** 식권 절취선 영역용. 세로 배치, "다음 레벨까지" 숨김. */
+  compact?: boolean
+}
+
+/** 레벨을 도장 5칸으로 보여 준다. 찍힌 칸 수가 레벨이다. 스펙 15. */
+export default function LevelStamps({ level, levelName, nextIn, compact = false }: Props) {
+  const label = `레벨 ${level} ${levelName}${nextIn !== null ? `, 다음 레벨까지 ${nextIn}회` : ''}`
+  return (
+    <span className={compact ? 'stamps stamps-compact' : 'stamps'} role="img" aria-label={label}>
+      <span className="stamps-row" aria-hidden="true">
+        {LEVELS.map((l) => (
+          <span key={l.level} className={l.level <= level ? 'stamp is-on' : 'stamp'} />
+        ))}
+      </span>
+      <span className="stamps-name" aria-hidden="true">
+        {levelName}
+      </span>
+      {!compact && nextIn !== null && (
+        <span className="stamps-next" aria-hidden="true">
+          다음 레벨까지 {nextIn}회
+        </span>
+      )}
+    </span>
+  )
+}
+```
+
+- [ ] **Step 2: 타입 검사**
+
+Run: `npx tsc --noEmit`
+Expected: 오류 0.
+
+- [ ] **Step 3: 커밋 (U0 전체를 한 번에)**
+
+```bash
+git add src/app/globals.css src/app/layout.tsx "src/app/(app)" src/app/components/Nav.tsx src/app/components/LevelStamps.tsx docs/superpowers/specs/2026-09-04-lunch-roulette/15-visual-design.md docs/superpowers/specs/2026-09-04-lunch-roulette/README.md docs/superpowers/plans/2026-09-04-visual-design docs/superpowers/handoff/2026-09-04-visual-design-handoff.md .claude/agents/ui-a-home.md .claude/agents/ui-b-places.md .claude/agents/ui-c-records-login.md .claude/agents/ui-d-integration.md
+git commit -m "feat(ui): 디자인 토큰, 서체, (app) 레이아웃, LevelStamps 기반 (스펙 15)"
+```
+
+(`git mv`로 옮긴 파일들은 stage에 이미 rename으로 잡혀 있다. 이 커밋에 포함된다. 기존 미커밋 변경 42개는 건드리지 않는다.)
+
+U0 커밋 해시를 A, B, C 에이전트 프롬프트에 적어 준다.
