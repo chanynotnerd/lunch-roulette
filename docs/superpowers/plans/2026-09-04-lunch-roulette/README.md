@@ -81,15 +81,16 @@ GOOGLE_MAPS_API_KEY=...
 
 세션 C 2부(장소 액션/화면) 리뷰에서 나온 항목 중 세션 E 통합 단계로 넘긴 것.
 
-- [ ] **장소별 식당 목록에 레벨 배지와 "다음 레벨까지 N회" 표시** (스펙 07 S3, 06 F8). `src/app/places/[id]/page.tsx`와 `listPlaceRestaurants`에 확정 횟수 집계를 붙이고 `src/rules/level.ts`로 계산한다. 세션 D의 `roulette-helpers.ts` `countXp`, `toCandidate`를 재사용할 수 있다.
-- [ ] **장소 화면 두 곳에 공통 하단 탭 적용** (스펙 07 공통). `src/app/places/page.tsx`, `src/app/places/[id]/page.tsx`의 인라인 `<nav>`를 세션 D의 `src/app/components/Nav.tsx`로 교체한다. 현재는 기록 탭으로 가는 링크가 없다.
+- [x] **장소별 식당 목록에 레벨 배지와 "다음 레벨까지 N회" 표시** (2026-09-04 완료) (스펙 07 S3, 06 F8). `src/app/places/[id]/page.tsx`와 `listPlaceRestaurants`에 확정 횟수 집계를 붙이고 `src/rules/level.ts`로 계산한다. 세션 D의 `roulette-helpers.ts` `countXp`, `toCandidate`를 재사용할 수 있다.
+- [x] **장소 화면 두 곳에 공통 하단 탭 적용** (2026-09-04 완료) (스펙 07 공통). `src/app/places/page.tsx`, `src/app/places/[id]/page.tsx`의 인라인 `<nav>`를 세션 D의 `src/app/components/Nav.tsx`로 교체한다. 현재는 기록 탭으로 가는 링크가 없다.
 - [ ] **수동 확인 시나리오 추가**: 장소 생성 → 돌리기 → 확정 → 그 장소 삭제 → 기록 화면에 "삭제된 장소" 표시. (0003 마이그레이션 회귀 확인)
 - [ ] 참고: 실제 설치된 Next는 16이다. `src/middleware.ts`는 `proxy.ts` 관례로 바뀌었으므로 `src/proxy.ts`로 이름을 바꿨다.
 
 ## 배포 결과 (2026-09-04)
 
 - 프로덕션 URL: https://lunch-roulette-sooty.vercel.app
-- Vercel 프로젝트: lunch-roulette (boltwriter721-2668s-projects). 설정은 (git 제외).
+- Vercel 프로젝트: lunch-roulette (boltwriter721-2668s-projects). 설정은 `.vercel/project.json` (git 제외).
 - Vercel 환경변수(production, preview): NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, KAKAO_REST_API_KEY, PLACES_PROVIDER=kakao, ADMIN_EMAILS, NEXT_PUBLIC_SITE_URL(production만). ROULETTE_ALLOW_ANY_TIME은 넣지 않음.
 - Supabase Redirect URLs: http://localhost:3000/auth/callback, https://lunch-roulette-sooty.vercel.app/auth/callback
-- 재배포: - 세션별 계획 파일(A~E)은 만들지 않고 에이전트 프롬프트로 대체했다. 남은 작업은 스펙 13-backlog.md 참조.
+- 재배포: `npx vercel --prod --yes`
+- 세션별 계획 파일(A~E)은 만들지 않고 에이전트 프롬프트로 대체했다. 남은 작업은 스펙 13-backlog.md 참조.
