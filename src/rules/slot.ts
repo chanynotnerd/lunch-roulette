@@ -10,9 +10,15 @@ function fmt(minutes: number): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
 
+/** 테스트 모드: ROULETTE_ALLOW_ANY_TIME=true 면 하루를 두 슬롯으로 꽉 채운다(15:00 전 lunch, 이후 dinner). 운영에서는 끈다. */
+export function isAnyTimeMode(): boolean {
+  return process.env.ROULETTE_ALLOW_ANY_TIME === 'true'
+}
+
 /** 현재 시각(Asia/Seoul)이 속한 슬롯. 시작 포함, 끝 미포함. 없으면 null. */
 export function getSlot(now: Date): { slot: Slot; slotDate: string } | null {
   const { dateStr, minutes } = seoulClock(now)
+  if (isAnyTimeMode()) return { slot: minutes < SLOTS.lunch.end ? 'lunch' : 'dinner', slotDate: dateStr }
   for (const slot of SLOT_ORDER) {
     const { start, end } = SLOTS[slot]
     if (start <= minutes && minutes < end) return { slot, slotDate: dateStr }
