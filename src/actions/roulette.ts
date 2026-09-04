@@ -7,7 +7,7 @@ import { fail, ok, type Result } from '@/lib/result'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isOpenAt } from '@/rules/hours'
 import { pickCandidates } from '@/rules/pick'
-import { getSlot, nextSlotStart } from '@/rules/slot'
+import { getSlot, isAnyTimeMode, nextSlotStart } from '@/rules/slot'
 import type { Slot } from '@/rules/types'
 import {
   countXp,
@@ -169,7 +169,7 @@ async function stateFromSession(admin: Admin, userId: string, session: SessionRo
     sessionId: session.id,
     slotLabel,
     candidates,
-    rerollUsed: session.reroll_used,
+    rerollUsed: session.reroll_used && !isAnyTimeMode(),
     poolNames: pool.map((r) => r.name),
   }
 }
@@ -272,7 +272,8 @@ export async function reroll(sessionId: string): Promise<Result<HomeState>> {
     const admin = createAdminClient()
     const session = await getSessionById(admin, user.id, sessionId)
     if (!session || session.status !== 'open') return fail('SESSION_NOT_OPEN')
-    if (session.reroll_used) return fail('REROLL_ALREADY_USED')
+    // 테스트 모드(ROULETTE_ALLOW_ANY_TIME)에서는 다시 돌리기 횟수 제한을 두지 않는다.
+    if (session.reroll_used && !isAnyTimeMode()) return fail('REROLL_ALREADY_USED')
     if (!isSessionSlotCurrent(session, now)) return fail('OUTSIDE_SLOT', { time: nextSlotStart(now) })
     // 장소가 삭제된 세션은 다시 돌릴 풀이 없다.
     if (!session.place_id) return fail('PLACE_FORBIDDEN')
@@ -286,7 +287,7 @@ export async function reroll(sessionId: string): Promise<Result<HomeState>> {
       .update({ candidate_ids: candidateIds, reroll_used: true })
       .eq('id', session.id)
       .eq('status', 'open')
-      .eq('reroll_used', false)
+      .eq('reroll_used', isAnyTimeMode() ? session.reroll_used : false)
       .select('*')
     if (error) throw error
     const updated = (data as SessionRow[] | null)?.[0]

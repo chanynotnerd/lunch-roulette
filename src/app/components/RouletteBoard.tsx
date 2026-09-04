@@ -46,10 +46,14 @@ export default function RouletteBoard({ state, placeId }: { state: HomeState; pl
   const [spinning, setSpinning] = useState(false)
   const [tickerName, setTickerName] = useState('')
 
+  // state 객체는 렌더마다 바뀌므로 의존성에 넣지 않는다. 넣으면 cleanup 이 타이머를 지워 spinning 이 영원히 true 로 남는다.
+  const stateRef = useRef(state)
+  stateRef.current = state
   useEffect(() => {
-    if (!animKey || state.kind !== 'open' || playedKey.current === animKey) return
+    const s = stateRef.current
+    if (!animKey || s.kind !== 'open' || playedKey.current === animKey) return
     playedKey.current = animKey
-    const names = state.poolNames.length > 0 ? state.poolNames : state.candidates.map((c) => c.name)
+    const names = s.poolNames.length > 0 ? s.poolNames : s.candidates.map((c) => c.name)
     let i = 0
     setSpinning(true)
     setTickerName(names[0] ?? '')
@@ -64,8 +68,9 @@ export default function RouletteBoard({ state, placeId }: { state: HomeState; pl
     return () => {
       clearInterval(interval)
       clearTimeout(stop)
+      setSpinning(false)
     }
-  }, [animKey, state])
+  }, [animKey])
 
   const locked = pending || spinning
 
