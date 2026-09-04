@@ -17,8 +17,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ p
     if (places.code === 'AUTH_REQUIRED') redirect('/login')
     return (
       <>
-        <h1>식사 룰렛</h1>
-        <p role="alert">{ERROR_MESSAGES[places.code](places.params)}</p>
+        <h1 className="page-title">식사 룰렛</h1>
+        <p role="alert" className="alert">
+          {ERROR_MESSAGES[places.code](places.params)}
+        </p>
       </>
     )
   }
@@ -30,15 +32,22 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ p
   const state = await getHomeState(selectedPlaceId)
   if (!state.ok && state.code === 'AUTH_REQUIRED') redirect('/login')
 
+  const slotLabel = state.ok && 'slotLabel' in state.data ? state.data.slotLabel : null
+
   return (
     <>
-      <h1>식사 룰렛</h1>
+      <h1 className="sr-only">식사 룰렛</h1>
+      <div className="home-top">
+        <PlacePicker places={places.data.map((p) => ({ id: p.id, name: p.name }))} selectedId={selectedPlaceId} />
+        {slotLabel && <p className="slot-label">오늘 {slotLabel}</p>}
+      </div>
       <AdminResetButton />
-      <PlacePicker places={places.data.map((p) => ({ id: p.id, name: p.name }))} selectedId={selectedPlaceId} />
       {state.ok ? (
         <RouletteBoard state={state.data} placeId={selectedPlaceId} />
       ) : (
-        <p role="alert">{ERROR_MESSAGES[state.code](state.params)}</p>
+        <p role="alert" className="alert">
+          {ERROR_MESSAGES[state.code](state.params)}
+        </p>
       )}
     </>
   )

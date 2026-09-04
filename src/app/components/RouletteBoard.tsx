@@ -2,79 +2,64 @@
 
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, useTransition } from 'react'
-import { confirm, reroll, spin, type Candidate, type HomeState } from '@/actions/roulette'
+import { confirm, reroll, spin, type HomeState } from '@/actions/roulette'
 import { ERROR_MESSAGES, type Result } from '@/lib/result'
+import LevelStamps from './LevelStamps'
 
 const SPIN_MS = 1800
 const TICK_MS = 80
 
-function Badge({ c }: { c: Candidate }) {
-  return (
-    <span
-      style={{
-        display: 'inline-block',
-        padding: '2px 8px',
-        borderRadius: 12,
-        background: '#eef',
-        fontSize: 13,
-      }}
-    >
-      Lv{c.level} {c.levelName}
-    </span>
-  )
+function prefersReducedMotion() {
+  return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-const buttonStyle: React.CSSProperties = {
-  fontSize: 16,
-  padding: '10px 16px',
-  borderRadius: 8,
-  border: '1px solid #888',
-  background: '#fff',
-  cursor: 'pointer',
-}
-
-/** 룰렛 영역. 상태 판단은 서버 응답을 그대로 따른다. 스펙 07 S2. */
+/** 룰렛 영역. 상태 판단은 서버 응답을 그대로 따른다. 스펙 07 S2, 15. */
 export default function RouletteBoard({ state, placeId }: { state: HomeState; placeId: string }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [pickId, setPickId] = useState<string | null>(null)
 
-  // 애니메이션: 세션 + 후보 조합이 바뀔 때만 재생한다.
-  const animKey = state.kind === 'open' ? `${state.sessionId}:${state.candidates.map((c) => c.id).join(',')}` : null
-  const playedKey = useRef<string | null>(null)
+  // 애니메이션: 돌리기/다시 돌리기/확정 액션이 성공한 직후에만 재생한다. (스펙 07 "서버 응답을 받은 뒤")
+  // prop 변화에 대한 effect 로 만들지 않는다. StrictMode 의 이중 setup 과 새로고침 시 재생 문제를 피하기 위해서다.
   const [spinning, setSpinning] = useState(false)
   const [tickerName, setTickerName] = useState('')
+  const [stamping, setStamping] = useState(false)
+  const timers = useRef<{ interval: ReturnType<typeof setInterval> | null; stop: ReturnType<typeof setTimeout> | null }>({
+    interval: null,
+    stop: null,
+  })
 
-  // state 객체는 렌더마다 바뀌므로 의존성에 넣지 않는다. 넣으면 cleanup 이 타이머를 지워 spinning 이 영원히 true 로 남는다.
-  const stateRef = useRef(state)
-  stateRef.current = state
-  useEffect(() => {
-    const s = stateRef.current
-    if (!animKey || s.kind !== 'open' || playedKey.current === animKey) return
-    playedKey.current = animKey
-    const names = s.poolNames.length > 0 ? s.poolNames : s.candidates.map((c) => c.name)
+  function clearTimers() {
+    const t = timers.current
+    if (t.interval) clearInterval(t.interval)
+    if (t.stop) clearTimeout(t.stop)
+    t.interval = null
+    t.stop = null
+  }
+
+  // unmount 시에만 타이머를 정리한다.
+  useEffect(() => clearTimers, [])
+
+  function playSpin(names: string[]) {
+    if (names.length === 0 || prefersReducedMotion()) return
+    clearTimers()
     let i = 0
     setSpinning(true)
-    setTickerName(names[0] ?? '')
-    const interval = setInterval(() => {
+    setTickerName(names[0])
+    timers.current.interval = setInterval(() => {
       i = (i + 1) % names.length
-      setTickerName(names[i] ?? '')
+      setTickerName(names[i])
     }, TICK_MS)
-    const stop = setTimeout(() => {
-      clearInterval(interval)
+    timers.current.stop = setTimeout(() => {
+      clearTimers()
       setSpinning(false)
     }, SPIN_MS)
-    return () => {
-      clearInterval(interval)
-      clearTimeout(stop)
-      setSpinning(false)
-    }
-  }, [animKey])
+  }
 
   const locked = pending || spinning
 
-  function run(action: () => Promise<Result<HomeState>>) {
+  function run(action: () => Promise<Result<HomeState>>, animate: boolean) {
     setError(null)
     startTransition(async () => {
       const result = await action()
@@ -87,25 +72,46 @@ export default function RouletteBoard({ state, placeId }: { state: HomeState; pl
         return
       }
       setPickId(null)
-      router.refresh()
+      if (animate && result.data.kind === 'open') {
+        const s = result.data
+        playSpin(s.poolNames.length > 0 ? s.poolNames : s.candidates.map((c) => c.name))
+      }
+      if (!animate && result.data.kind === 'confirmed') setStamping(true)
     })
   }
 
   const errorBox = error && (
-    <p role="alert" style={{ color: '#b00020' }}>
+    <p role="alert" className="alert">
       {error}
     </p>
   )
 
+  // 액션이 끝난 직후 새 state 가 조금 늦게 도착할 수 있으므로 state.kind 와 무관하게 메뉴판을 그린다.
+  if (spinning) {
+    return (
+      <section className="section">
+        <div className="board" role="status" aria-live="polite">
+          <span className="sr-only">후보를 뽑는 중입니다</span>
+          <span className="board-name" aria-hidden="true">
+            {tickerName}
+          </span>
+        </div>
+      </section>
+    )
+  }
+
   if (state.kind === 'no_place') {
-    return <p>장소를 먼저 등록해 주세요</p>
+    // 홈은 장소가 없으면 /places 로 리다이렉트하므로(스펙 06 F1.2) 보통 도달하지 않는다.
+    return <p className="muted">장소를 먼저 등록해 주세요</p>
   }
 
   if (state.kind === 'outside') {
     return (
-      <section>
-        <p>다음 룰렛은 {state.nextSlotAt}에 열립니다</p>
-        <button type="button" style={buttonStyle} disabled>
+      <section className="section">
+        <div className="board">
+          <p className="board-caption">다음 룰렛은 {state.nextSlotAt}에 열립니다</p>
+        </div>
+        <button type="button" className="btn btn-primary btn-block" disabled>
           돌리기
         </button>
       </section>
@@ -114,10 +120,11 @@ export default function RouletteBoard({ state, placeId }: { state: HomeState; pl
 
   if (state.kind === 'not_enough') {
     return (
-      <section>
-        <p>오늘 {state.slotLabel}</p>
-        <p>지금 영업 중인 식당이 {state.count}곳뿐입니다</p>
-        <button type="button" style={buttonStyle} disabled>
+      <section className="section">
+        <div className="board">
+          <p className="board-caption">지금 영업 중인 식당이 {state.count}곳뿐입니다</p>
+        </div>
+        <button type="button" className="btn btn-primary btn-block" disabled>
           돌리기
         </button>
       </section>
@@ -126,9 +133,16 @@ export default function RouletteBoard({ state, placeId }: { state: HomeState; pl
 
   if (state.kind === 'idle') {
     return (
-      <section>
-        <p>오늘 {state.slotLabel}</p>
-        <button type="button" style={buttonStyle} disabled={locked} onClick={() => run(() => spin(placeId))}>
+      <section className="section">
+        <div className="board">
+          <p className="board-caption">영업 중인 식당 3곳을 뽑습니다</p>
+        </div>
+        <button
+          type="button"
+          className="btn btn-primary btn-block"
+          disabled={locked}
+          onClick={() => run(() => spin(placeId), true)}
+        >
           {pending ? '돌리는 중…' : '돌리기'}
         </button>
         {errorBox}
@@ -138,26 +152,25 @@ export default function RouletteBoard({ state, placeId }: { state: HomeState; pl
 
   const placeNote = (s: { placeId: string | null; placeName: string }) =>
     s.placeId !== placeId ? (
-      <p style={{ color: '#a60', margin: '4px 0' }}>
-        오늘 이 슬롯의 룰렛은 이미 &quot;{s.placeName}&quot;에서 돌렸습니다. 슬롯당 룰렛은 한 번입니다.
-      </p>
+      <p className="note">오늘 이 슬롯의 룰렛은 이미 &quot;{s.placeName}&quot;에서 돌렸습니다. 슬롯당 룰렛은 한 번입니다.</p>
     ) : null
 
   if (state.kind === 'confirmed') {
     const c = state.chosen
     return (
-      <section>
+      <section className="section">
         {placeNote(state)}
-        <h2 style={{ margin: '8px 0' }}>
-          오늘 {state.slotLabel}: {c.name}
-        </h2>
-        <p style={{ color: '#666', margin: '4px 0' }}>{c.address}</p>
-        <p>
-          <Badge c={c} />
-          {c.nextIn !== null && <span style={{ marginLeft: 8, fontSize: 13 }}>다음 레벨까지 {c.nextIn}회</span>}
-        </p>
-        {state.leveledUp && <p style={{ fontWeight: 'bold', fontSize: 18 }}>레벨 업!</p>}
-        <p>다음 룰렛은 {state.nextSlotAt}에 열립니다</p>
+        <div className="result" aria-live="polite">
+          <span className={stamping ? 'seal is-stamping' : 'seal'} aria-hidden="true">
+            확정
+          </span>
+          <p className="result-slot">오늘 {state.slotLabel}</p>
+          <h2 className="result-name">{c.name}</h2>
+          <p className="muted small">{c.address}</p>
+          <LevelStamps level={c.level} levelName={c.levelName} nextIn={c.nextIn} />
+          {state.leveledUp && <p className="levelup">레벨 업! 이제 {c.levelName}입니다</p>}
+        </div>
+        <p className="muted">다음 룰렛은 {state.nextSlotAt}에 열립니다</p>
       </section>
     )
   }
@@ -165,82 +178,60 @@ export default function RouletteBoard({ state, placeId }: { state: HomeState; pl
   // open
   const picked = pickId ? state.candidates.find((c) => c.id === pickId) : null
   return (
-    <section>
-      <p>오늘 {state.slotLabel} · {state.placeName}</p>
+    <section className="section">
       {placeNote(state)}
-      {spinning ? (
-        <div
-          style={{
-            padding: 24,
-            textAlign: 'center',
-            fontSize: 22,
-            fontWeight: 'bold',
-            border: '1px solid #ccc',
-            borderRadius: 8,
-            minHeight: 80,
-          }}
-        >
-          {tickerName}
-        </div>
-      ) : (
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-          {state.candidates.map((c) => (
-            <li key={c.id} style={{ marginBottom: 8 }}>
-              <button
-                type="button"
-                disabled={locked}
-                onClick={() => {
-                  setError(null)
-                  setPickId(c.id)
-                }}
-                style={{
-                  ...buttonStyle,
-                  display: 'block',
-                  width: '100%',
-                  textAlign: 'left',
-                  padding: 12,
-                  borderColor: pickId === c.id ? '#333' : '#ccc',
-                }}
-              >
-                <div style={{ fontWeight: 'bold' }}>{c.name}</div>
-                <div style={{ color: '#666', fontSize: 14 }}>{c.address}</div>
-                <div style={{ marginTop: 4 }}>
-                  <Badge c={c} />
-                  {c.nextIn !== null && <span style={{ marginLeft: 8, fontSize: 13 }}>다음 레벨까지 {c.nextIn}회</span>}
-                </div>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+      <ul className="tickets">
+        {state.candidates.map((c) => (
+          <li key={c.id}>
+            <button
+              type="button"
+              className="ticket"
+              aria-pressed={pickId === c.id}
+              disabled={locked}
+              onClick={() => {
+                setError(null)
+                setPickId(c.id)
+              }}
+            >
+              <span className="ticket-main">
+                <span className="ticket-name">{c.name}</span>
+                <span className="ticket-address">{c.address}</span>
+              </span>
+              <span className="ticket-stub">
+                <LevelStamps level={c.level} levelName={c.levelName} nextIn={c.nextIn} compact />
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
 
-      {picked && !spinning && (
-        <div style={{ margin: '12px 0', padding: 12, border: '1px solid #333', borderRadius: 8 }}>
-          <p style={{ marginTop: 0 }}>{picked.name}으로 확정할까요?</p>
-          <button
-            type="button"
-            style={buttonStyle}
-            disabled={locked}
-            onClick={() => run(() => confirm(state.sessionId, picked.id))}
-          >
-            {pending ? '확정 중…' : '확정'}
-          </button>{' '}
-          <button type="button" style={buttonStyle} disabled={locked} onClick={() => setPickId(null)}>
-            취소
-          </button>
+      {picked && (
+        <div className="confirm" role="group" aria-label="확정 확인">
+          <p>{picked.name}으로 확정할까요?</p>
+          <div className="confirm-actions">
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={locked}
+              onClick={() => run(() => confirm(state.sessionId, picked.id), false)}
+            >
+              {pending ? '확정 중…' : '확정'}
+            </button>
+            <button type="button" className="btn" disabled={locked} onClick={() => setPickId(null)}>
+              취소
+            </button>
+          </div>
         </div>
       )}
 
-      <div style={{ marginTop: 12 }}>
-        <button
-          type="button"
-          style={buttonStyle}
-          disabled={locked || state.rerollUsed}
-          onClick={() => run(() => reroll(state.sessionId))}
-        >
-          다시 돌리기{state.rerollUsed ? ' (사용함)' : ''}
-        </button>
-      </div>
+      <button
+        type="button"
+        className="btn btn-block"
+        disabled={locked || state.rerollUsed}
+        onClick={() => run(() => reroll(state.sessionId), true)}
+      >
+        {state.rerollUsed ? '다시 돌리기 (사용함)' : '다시 돌리기'}
+      </button>
       {errorBox}
     </section>
   )
