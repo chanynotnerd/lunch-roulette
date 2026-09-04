@@ -21,10 +21,41 @@
 
 | 번호 | 항목 | 관련 스펙 | 메모 |
 |---|---|---|---|
-| Q1 | 서버 액션 통합 테스트 | 11 계층 2 | 1시간 제약으로 미룸. 로컬 Supabase 기준으로 돌리기/다시 돌리기/확정/중복/권한 케이스. |
-| Q2 | 화면 스타일링 | 07 | 동작 우선으로 만들어 스타일이 없다. 모바일 세로 기준 정리. |
+| Q1 | 서버 액션 통합 테스트 (로컬 Supabase) | 11 계층 2 | 2026-09-04 코드리뷰 후 `tests/actions/roulette.test.ts`에 모의 클라이언트 기반 분기 테스트(23505 재조회, 조건부 update 0건, 후보 검사)를 넣었다. 실제 DB 기준 RLS·RPC·유일 제약 검증은 아직 없다. |
 | Q3 | 화면 테스트 | 11 계층 3 | 홈 상태 4개의 버튼/문구 확인. |
-| Q4 | 테스트 플래그 정리 | 05 | `ROULETTE_ALLOW_ANY_TIME`(슬롯 해제, 다시 돌리기 무제한)은 테스트 전용. 운영 환경변수에 넣지 않는다. |
+| Q4 | 테스트 플래그 정리 | 05 | `ROULETTE_ALLOW_ANY_TIME`(슬롯 해제, 다시 돌리기 무제한)은 테스트 전용. 2026-09-04부터 `NODE_ENV=production`이면 코드에서 무시한다(`src/rules/slot.ts`). 남은 일: 플래그 자체를 제거할지 결정. |
+
+## 코드리뷰 Minor (2026-09-04)
+
+출처: [reviews/2026-09-04-code-review.md](../../reviews/2026-09-04-code-review.md). Critical/Important는 같은 날 수정했고, 아래는 미룬 Minor다.
+
+| 번호 | 항목 | 파일 | 메모 |
+|---|---|---|---|
+| R1 | `isSlotEnded` 미사용 export | src/rules/slot.ts | 소비처는 `getSlot` 기반. 제거하거나 any-time 모드를 반영. |
+| R2 | `nextSlotStart`에 "내일" 정보 없음 | src/rules/slot.ts, 스펙 08 | 21:00 이후 안내 문구가 "11:00에 열립니다"로만 나온다. `{ time, tomorrow }` 반환 + 08 문구 수정. |
+| R3 | `pick.ts` 오류 이름 | src/rules/pick.ts | `Error('NOT_ENOUGH')`가 앱 코드 `NOT_ENOUGH_OPEN`과 다르다. 호출부가 사전 검사하므로 실제로는 안 던져진다. |
+| R4 | `DAY_KEYS as const`, `DEFAULT_HOURS` freeze | src/rules/types.ts, src/config/default-hours.ts | 타입 캐스팅 제거와 불변성. |
+| R5 | 시드 중간 실패 시 적용 목록 미출력 | scripts/seed-hours.ts | DB 오류로 멈추면 어디까지 적용됐는지 알 수 없다. |
+| A1 | 비관리자 거절 코드가 `PLACE_FORBIDDEN` | src/actions/admin.ts | 문구가 "접근할 수 없는 장소입니다"라 의미가 안 맞는다. `FORBIDDEN` 코드 신설 검토. |
+| A2 | 콜백 라우트가 `x-forwarded-host` 무시 | src/app/auth/callback/route.ts | 프록시/프리뷰 환경에서 origin이 어긋날 수 있다. |
+| A3 | 반경 범위 위반 시 동작 스펙 미정의 | 스펙 04, 08 | 현재 clamp. 스펙에 명시. |
+| A4 | 세션 상태 일관성 check 제약 | supabase/migrations | `status='confirmed' ⇔ chosen_restaurant_id/confirmed_at not null`. |
+| A5 | 0001 `create policy` 재실행 불가 | supabase/migrations/0001_init.sql | `drop policy if exists` 선행 검토. |
+| A6 | `listRecords` requireUser 위치 | src/actions/records.ts | 다른 액션과 스타일 통일. |
+| A7 | 읽기 경로도 RLS를 타게 할지 | src/actions/* | 모든 읽기가 서비스 롤이라 RLS가 실제로 안 쓰인다. `.eq('user_id')` 누락 시 방어선이 없다. |
+| A8 | `google_place_id` 컬럼명 | 스펙 04 | `kakao:` 접두 값을 넣고 있다. `provider_place_id`로 rename 검토. |
+| U2 | 관리자 초기화 버튼 확인 단계·실패 표시 없음 | src/app/components/AdminResetButton.tsx | `requireUser` 중복 호출도 정리. |
+| U4 | 카카오 주소→키워드 폴백이 `GEOCODE_NOT_FOUND`를 사실상 없앰 | src/places/kakao.ts | 오타 주소가 엉뚱한 좌표로 잡힐 수 있다. 폴백 결과 제한 또는 로그. |
+| U5 | `radius` clamp 중복, `force-dynamic` 불필요 | src/places/kakao.ts, src/app/page.tsx | 무해. 정리만. |
+| U6 | `PlaceForm`을 `useActionState`로 통일 | src/app/places/PlaceForm.tsx | 현재 `onSubmit + useTransition`도 유효. Next 16 권장 방식으로 나중에. |
+| S1 | `createPlace` 빈도 제한 | src/actions/places.ts | 사용자당 장소 수 상한은 넣었다. 분당 호출 제한은 인프라 필요. |
+| S2 | 가입 제한 | src/lib/auth.ts, Supabase Auth | 아무 Google 계정이나 로그인된다. 이메일 도메인 제한 검토. |
+| S3 | `npm audit` 미확인 | package.json | 리뷰 시 네트워크 타임아웃. 배포 전 재실행. |
+| F1 | `PlacePicker`가 `spinning`을 모름 | src/app/components/PlacePicker.tsx | 스펙 07 "애니메이션 중 모든 버튼 잠금"인데 장소 선택은 잠기지 않는다. 기존과 같은 동작. Q3/U3과 함께. |
+| F2 | 비uuid sessionId에 `SESSION_NOT_OPEN` 반환 | src/actions/roulette.ts | 문구 "이미 확정된 룰렛입니다"가 의미와 안 맞는다. A1의 `FORBIDDEN` 코드 신설과 함께. |
+| F3 | 시드 스크립트 Google id 접두 경고 | scripts/seed-hours.ts | `ChIJ` 외 접두(`Eid`, `GhIJ`)도 있어 경고가 잘못 뜰 수 있다. 경고뿐이라 무해. |
+| F4 | 중복 헬퍼·미사용 export | src/places/http.ts `isRecord`, src/rules/hours-schema.ts `isValidHours`/`TIME_RE` | `isRecord` ≡ `isPlainObject`. 하나로 합치고 테스트 전용 export는 정리. |
+| F5 | `createPlace` 장소 수 상한 경로 테스트 없음 | tests/actions | 헬퍼 `checkPlaceLimit`만 테스트됨. count 쿼리 → 거절 연결은 Q1과 함께. |
 
 ## 운영
 
