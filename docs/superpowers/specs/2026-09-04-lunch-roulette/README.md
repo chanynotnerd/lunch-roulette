@@ -23,6 +23,7 @@
 | 10 | [10-seed-and-overrides.md](10-seed-and-overrides.md) | 시드와 보정 | 영업시간 보정 파일과 시드 스크립트 |
 | 11 | [11-testing.md](11-testing.md) | 테스트 | 테스트 계층과 대상 |
 | 12 | [12-pre-implementation-spike.md](12-pre-implementation-spike.md) | 검증 단계 | 구현 전 데이터 품질 스파이크 |
+| 13 | [13-backlog.md](13-backlog.md) | 백로그 | 추후 버전에서 작업할 항목 목록 |
 
 ## 읽는 순서
 

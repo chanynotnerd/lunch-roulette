@@ -30,6 +30,12 @@ export default async function PlaceRestaurantsPage({
                 <strong>{r.name}</strong>
               </div>
               <div>{r.address}</div>
+              <div style={{ marginTop: 4 }}>
+                <span style={{ padding: '2px 8px', borderRadius: 12, background: '#eef', fontSize: 13 }}>
+                  Lv{r.level} {r.levelName}
+                </span>
+                {r.nextIn !== null && <span style={{ marginLeft: 8, fontSize: 13 }}>다음 레벨까지 {r.nextIn}회</span>}
+              </div>
               {!r.has_hours && <div style={{ color: '#888' }}>영업시간 정보 없음</div>}
             </li>
           ))}

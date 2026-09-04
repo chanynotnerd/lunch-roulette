@@ -7,6 +7,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { geocode, searchRestaurants } from '@/places/search'
 import { ExternalApiError } from '@/places/types'
 import { isUuid, validatePlaceInput } from '@/actions/places-helpers'
+import { countXp } from '@/actions/roulette-helpers'
+import { getLevel } from '@/rules/level'
 
 export type PlaceSummary = {
   id: string
@@ -21,6 +23,12 @@ export type PlaceRestaurant = {
   name: string
   address: string
   has_hours: boolean
+  /** 이 사용자의 확정 횟수 (스펙 04: 저장하지 않고 계산) */
+  xp: number
+  level: number
+  levelName: string
+  /** 다음 레벨까지 남은 횟수. 최고 레벨이면 null */
+  nextIn: number | null
 }
 
 const RADIUS_MIN = 100
@@ -103,15 +111,34 @@ export async function listPlaceRestaurants(placeId: string): Promise<Result<Plac
     const rows = (data ?? []) as unknown as {
       restaurants: { id: string; name: string; address: string; hours: unknown } | null
     }[]
-    const list = rows
-      .map((r) => r.restaurants)
-      .filter((r): r is NonNullable<typeof r> => r !== null)
-      .map((r) => ({
-        id: r.id,
-        name: r.name,
-        address: r.address,
-        has_hours: r.hours !== null && r.hours !== undefined,
-      }))
+    const restaurants = rows.map((r) => r.restaurants).filter((r): r is NonNullable<typeof r> => r !== null)
+    const ids = restaurants.map((r) => r.id)
+    // 스펙 07 S3: 식당별 레벨 배지. 경험치는 사용자의 confirmed 세션 수로 계산한다.
+    const { data: confirmed, error: xpError } = ids.length
+      ? await admin
+          .from('roulette_sessions')
+          .select('chosen_restaurant_id')
+          .eq('user_id', user.id)
+          .eq('status', 'confirmed')
+          .in('chosen_restaurant_id', ids)
+      : { data: [], error: null }
+    if (xpError) throw xpError
+    const xpMap = countXp((confirmed ?? []) as { chosen_restaurant_id: string | null }[], ids)
+    const list = restaurants
+      .map((r) => {
+        const xp = xpMap.get(r.id) ?? 0
+        const lv = getLevel(xp)
+        return {
+          id: r.id,
+          name: r.name,
+          address: r.address,
+          has_hours: r.hours !== null && r.hours !== undefined,
+          xp,
+          level: lv.level,
+          levelName: lv.name,
+          nextIn: lv.nextIn,
+        }
+      })
       .sort((a, b) => a.name.localeCompare(b.name, 'ko'))
     return ok(list)
   } catch (e) {
