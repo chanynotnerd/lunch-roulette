@@ -24,6 +24,7 @@
 | Q1 | 서버 액션 통합 테스트 (로컬 Supabase) | 11 계층 2 | 2026-09-04 코드리뷰 후 `tests/actions/roulette.test.ts`에 모의 클라이언트 기반 분기 테스트(23505 재조회, 조건부 update 0건, 후보 검사)를 넣었다. 실제 DB 기준 RLS·RPC·유일 제약 검증은 아직 없다. |
 | Q3 | 화면 테스트 | 11 계층 3 | 홈 상태 4개의 버튼/문구 확인. |
 | Q4 | 테스트 플래그 정리 | 05 | `ROULETTE_ALLOW_ANY_TIME`(슬롯 해제, 다시 돌리기 무제한)은 테스트 전용. 2026-09-04부터 `NODE_ENV=production`이면 코드에서 무시한다(`src/rules/slot.ts`). 남은 일: 플래그 자체를 제거할지 결정. |
+| Q5 | 확정 확인 문구의 조사가 받침과 무관하게 "으로" 고정 ("코엑스몰으로 확정할까요?") | 07 | 스펙 07 문구 그대로. 받침 유무에 따라 "로/으로" 선택하거나 문구를 "OO, 확정할까요?"로 바꾼다. |
 
 ## 코드리뷰 Minor (2026-09-04)
 
@@ -48,6 +49,11 @@
 | U4 | 카카오 주소→키워드 폴백이 `GEOCODE_NOT_FOUND`를 사실상 없앰 | src/places/kakao.ts | 오타 주소가 엉뚱한 좌표로 잡힐 수 있다. 폴백 결과 제한 또는 로그. |
 | U5 | `radius` clamp 중복, `force-dynamic` 불필요 | src/places/kakao.ts, src/app/page.tsx | 무해. 정리만. |
 | U6 | `PlaceForm`을 `useActionState`로 통일 | src/app/places/PlaceForm.tsx | 현재 `onSubmit + useTransition`도 유효. Next 16 권장 방식으로 나중에. |
+| U7 | confirmed 화면에 "오늘 점심/저녁"이 두 번 보임 (상단 slot-label + 결과 카드 result-slot) | src/app/(app)/page.tsx, src/app/components/RouletteBoard.tsx | 스펙 15 레이아웃(헤더에 슬롯)과 스펙 07 confirmed 행("오늘 점심: OO")이 겹친다. 스펙 결정 후 한쪽을 뺀다. 계획 A-home.md 코드 그대로 구현된 결과. |
+| U8 | `stamping`이 true가 된 뒤 false로 돌아가지 않음 | src/app/components/RouletteBoard.tsx | 같은 마운트에서 두 번째 확정 시 도장 애니메이션이 안 나온다. 슬롯당 확정 1회라 실사용 영향 없음. `run()` 진입부에 `setStamping(false)`. |
+| U9 | 이동·회전 중 포커스 유실 | src/app/components/PlacePicker.tsx, src/app/components/RouletteBoard.tsx | select가 `disabled`가 되고 돌리기 버튼이 언마운트되어 키보드 포커스가 body로 간다. `aria-disabled` 또는 버튼 유지 + disabled. |
+| U10 | aria-live 영역이 내용과 동시에 마운트됨, 도장 "확정" 텍스트가 접근성 트리에 없음 | src/app/components/RouletteBoard.tsx | 스크린리더가 티커·확정 결과를 못 읽을 수 있다. 라이브 영역을 항상 두고 텍스트만 교체, `.result`에 sr-only "확정" 추가. |
+| U11 | 삭제 확인의 "정말 삭제"와 "취소"가 같은 모양(.btn) | src/app/(app)/places/DeletePlaceButton.tsx | 파괴적 액션 구분 없음. 계획 B-places.md가 btn 지정. `.btn-primary` 또는 `.btn-danger` 신설. `.result-name padding-right 88px`로 이름이 3줄로 쪼개지는 것, `.btn-text` 터치 타깃 28px, `.btn-admin justify-self` 무효도 같은 CSS 다듬기 묶음. |
 | S1 | `createPlace` 빈도 제한 | src/actions/places.ts | 사용자당 장소 수 상한은 넣었다. 분당 호출 제한은 인프라 필요. |
 | S2 | 가입 제한 | src/lib/auth.ts, Supabase Auth | 아무 Google 계정이나 로그인된다. 이메일 도메인 제한 검토. |
 | S3 | `npm audit` 미확인 | package.json | 리뷰 시 네트워크 타임아웃. 배포 전 재실행. |

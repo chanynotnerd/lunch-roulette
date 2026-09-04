@@ -26,6 +26,7 @@
 | 13 | [13-backlog.md](13-backlog.md) | 백로그 | 추후 버전에서 작업할 항목 목록 |
 | 14 | [14-userflow-happy-case.md](14-userflow-happy-case.md) | 유저플로우 | 해피케이스 시나리오와 다이어그램. Figma(FigJam)의 원본 |
 | 15 | [15-visual-design.md](15-visual-design.md) | 시각 디자인 | 단골 도장 카드 컨셉, 토큰, 서체, 레이아웃, 움직임, 접근성 |
+| 16 | [16-personal-map.md](16-personal-map.md) | 퍼스널 맵 | 기록 탭 전체 화면 카카오 지도, 식당별 도장 마커, 목록 오버레이. 시각 디자인 구현 이후 작업 |
 
 ## 읽는 순서
 
