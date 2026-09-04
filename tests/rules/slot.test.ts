@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { getSlot, nextSlotStart, isSlotEnded } from '@/rules/slot'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { getSlot, nextSlotStart, isSlotEnded, isAnyTimeMode } from '@/rules/slot'
 
 const at = (hhmm: string, date = '2026-09-04') => new Date(`${date}T${hhmm}:00+09:00`)
 
@@ -64,5 +64,39 @@ describe('isSlotEnded', () => {
   })
   it('a slot on a future date is not ended', () => {
     expect(isSlotEnded('lunch', '2026-09-05', at('23:59', '2026-09-04'))).toBe(false)
+  })
+})
+
+describe('isAnyTimeMode', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('flag on + non-production → true', () => {
+    vi.stubEnv('NODE_ENV', 'development')
+    vi.stubEnv('ROULETTE_ALLOW_ANY_TIME', 'true')
+    expect(isAnyTimeMode()).toBe(true)
+  })
+
+  it('flag on + production → true (플래그는 서버 환경변수라 우회 불가. 운영 배포에는 넣지 않는다)', () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('ROULETTE_ALLOW_ANY_TIME', 'true')
+    expect(isAnyTimeMode()).toBe(true)
+    expect(getSlot(at('09:00'))?.slot).toBe('lunch')
+  })
+
+  it('flag off → false', () => {
+    vi.stubEnv('NODE_ENV', 'development')
+    vi.stubEnv('ROULETTE_ALLOW_ANY_TIME', 'false')
+    expect(isAnyTimeMode()).toBe(false)
+    vi.stubEnv('ROULETTE_ALLOW_ANY_TIME', '')
+    expect(isAnyTimeMode()).toBe(false)
+  })
+
+  it('flag on + non-production fills the day with two slots', () => {
+    vi.stubEnv('NODE_ENV', 'test')
+    vi.stubEnv('ROULETTE_ALLOW_ANY_TIME', 'true')
+    expect(getSlot(at('09:00'))).toEqual({ slot: 'lunch', slotDate: '2026-09-04' })
+    expect(getSlot(at('23:00'))).toEqual({ slot: 'dinner', slotDate: '2026-09-04' })
   })
 })

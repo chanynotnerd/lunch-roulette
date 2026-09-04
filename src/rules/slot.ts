@@ -10,7 +10,11 @@ function fmt(minutes: number): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
 
-/** 테스트 모드: ROULETTE_ALLOW_ANY_TIME=true 면 하루를 두 슬롯으로 꽉 채운다(15:00 전 lunch, 이후 dinner). 운영에서는 끈다. */
+/**
+ * 테스트 모드: ROULETTE_ALLOW_ANY_TIME=true 면 하루를 두 슬롯으로 꽉 채운다(15:00 전 lunch, 이후 dinner).
+ * 환경변수는 서버에서만 설정되므로 사용자가 우회할 수 없다. 운영 배포에는 이 변수를 넣지 않는다(백로그 Q4).
+ * 배포본에서 잠시 테스트할 때만 Vercel 환경변수로 켜고, 끝나면 지운다.
+ */
 export function isAnyTimeMode(): boolean {
   return process.env.ROULETTE_ALLOW_ANY_TIME === 'true'
 }
