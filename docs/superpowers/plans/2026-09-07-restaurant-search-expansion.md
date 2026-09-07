@@ -1570,6 +1570,12 @@ push로 Vercel Git 연동 배포가 시작된다. `npx vercel ls lunch-roulette`
 
 ---
 
+### Task 7: RPC 식당 상한 100 → 200 (마이그레이션 0006, 실행 중 추가)
+
+Task 6 로컬 확인에서 발견. 0005의 심층 방어(`> 100`)가 스펙 17 E4의 200개와 충돌해 `createPlace`가 UNEXPECTED. `supabase/migrations/0006_rpc_restaurant_cap_200.sql`로 상한만 200으로 올리고 스펙 17 코드 구조 표에 적었다. 적용은 주인님 승인 후 Supabase MCP `apply_migration` 또는 대시보드 SQL 편집기.
+
+---
+
 ## 주인님이 직접 할 일
 
 1. Task 0 Step 3: 실제 쓰는 장소 주소 하나를 알려 주기.
