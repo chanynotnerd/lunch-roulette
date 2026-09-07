@@ -50,12 +50,17 @@ const SESSIONS = [
   { slot_date: '2026-09-02', slot: 'lunch', chosen_restaurant_id: KIMBAP.id, confirmed_at: '2026-09-02T03:30:00Z', places: { name: '회사' }, restaurants: KIMBAP },
 ]
 
+const PLACES = [
+  { id: 'p-office', name: '회사', lat: 37.49, lng: 127.02 },
+  { id: 'p-home', name: '집', lat: 37.55, lng: 126.98 },
+]
+
 function setup(over: Partial<Record<string, Handler>> = {}) {
   const { admin, calls } = makeAdmin((call) => {
     const custom = over[call.table]
     if (custom) return custom(call)
     if (call.table === 'roulette_sessions') return { data: SESSIONS }
-    if (call.table === 'places') return { data: { lat: 37.49, lng: 127.02 } }
+    if (call.table === 'places') return { data: PLACES }
     return { data: null }
   })
   createAdminClientMock.mockReturnValue(admin)
@@ -107,20 +112,22 @@ describe('loadRecordsScreen', () => {
     expect(call.select).toContain('places(name)')
   })
 
-  it('fallbackCenter는 첫 장소(created_at asc, 1건) 좌표다', async () => {
+  it('장소 전체를 생성순으로 내려주고 fallbackCenter는 첫 장소 좌표다', async () => {
     const { calls } = setup()
     const r = await loadRecordsScreen()
+    expect(r.ok && r.data.places).toEqual(PLACES)
     expect(r.ok && r.data.fallbackCenter).toEqual({ lat: 37.49, lng: 127.02 })
     const call = calls.find((c) => c.table === 'places')!
     expect(has(call, 'eq', 'user_id', USER.id)).toBe(true)
     expect(call.filters).toContainEqual(['order', 'created_at', { ascending: true }])
-    expect(call.filters).toContainEqual(['limit', 1])
-    expect(call.terminal).toBe('maybeSingle')
+    expect(call.select).toContain('id, name, lat, lng')
+    expect(call.terminal).toBeUndefined()
   })
 
   it('장소가 없으면 fallbackCenter는 서울시청', async () => {
-    setup({ places: () => ({ data: null }) })
+    setup({ places: () => ({ data: [] }) })
     const r = await loadRecordsScreen()
+    expect(r.ok && r.data.places).toEqual([])
     expect(r.ok && r.data.fallbackCenter).toEqual({ lat: 37.5665, lng: 126.978 })
   })
 

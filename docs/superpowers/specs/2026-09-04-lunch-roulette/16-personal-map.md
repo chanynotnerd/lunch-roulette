@@ -21,6 +21,7 @@
 | M5 | 도장 모양 마커. 빨간 원 안에 방문 횟수 숫자, 레벨이 오를수록 커지고 테두리가 진해짐. 이름은 마커에 쓰지 않는다 | 스펙 15의 확정 도장과 같은 그림이라 지도가 곧 도장판이 된다. 이름 라벨은 마커가 몰리면 겹친다 |
 | M6 | 카카오맵 JavaScript SDK를 래퍼 라이브러리 없이 직접 쓴다 | 의존성을 늘리지 않는다. 마커를 도장 HTML로 그리는 데 제약이 없다. 정적 지도 이미지는 이동이 안 돼 제외 |
 | M7 | 플로팅 버튼은 항상 오른쪽 위에 고정 | 아래에 두면 카드와 겹친다. 자리가 고정돼야 상태가 바뀌어도 버튼을 찾기 쉽다 |
+| M8 (2026-09-07 추가) | 사용자의 장소(회사, 집)를 검은 점 + 이름 라벨 마커로 지도에 표시한다. 누를 수 없고 탭은 지도로 통과한다. 초기 자동 맞춤에는 넣지 않는다 | 기준점이 어딘지 보여야 도장의 위치가 읽힌다. 카드까지 만들면 도장 마커의 카드와 경쟁하고, 장소 정보는 장소 탭에 이미 있다. 범위에 넣으면 회사와 집이 멀 때 도장이 점처럼 작아진다(B8 영역) |
 
 ## 시각 디자인 (스펙 15 개정 항목)
 
@@ -42,9 +43,10 @@ DB 쿼리와 마이그레이션은 추가하지 않는다. `restaurants`에 카�
 기존 `listRecords`를 `loadRecordsScreen`으로 바꾼다. 소비처는 기록 페이지 하나다. 조회는 한 번이고 결과를 두 모양으로 가공한다.
 
 - 조회: 본인의 confirmed 세션을 `slot_date desc, slot desc`로. select에 `restaurants(id, name, address, lat, lng)`를 넣는다(기존은 `name`만).
-- 반환: `{ records: RecordRow[], markers: MapMarker[], fallbackCenter: LatLng }`.
+- 반환: `{ records: RecordRow[], markers: MapMarker[], places: PlaceMarker[], fallbackCenter: LatLng }`.
+- `places`: 사용자의 장소 전부(`places`를 `created_at asc`로, `id, name, lat, lng`). 좌표가 유한하지 않은 행은 뺀다(`toPlaceMarkers`). 최대 10개.
 - 로그인 안 됨 → `AUTH_REQUIRED`. 조회 실패 → `UNEXPECTED`. 스펙 08의 Result 규약 그대로.
-- `fallbackCenter`: 사용자의 첫 장소(`places`를 `created_at asc`로 1건) 좌표. 없으면 서울시청 `{ lat: 37.5665, lng: 126.9780 }` 상수.
+- `fallbackCenter`: `places`의 첫 항목 좌표. 없으면 서울시청 `{ lat: 37.5665, lng: 126.9780 }` 상수.
 
 ### 타입
 
@@ -62,6 +64,8 @@ type MapMarker = {
   level: number; levelName: string   // getLevel(visits). 스펙 05 레벨 표
   lastVisitDate: string         // 마지막 confirmed 행의 slot_date (YYYY-MM-DD)
 }
+
+type PlaceMarker = { id: string; name: string; lat: number; lng: number }   // M8. 장소 마커
 ```
 
 ### 순수 함수 (`src/actions/records-helpers.ts`)
@@ -69,6 +73,7 @@ type MapMarker = {
 - `toMarkers(rows)`: 조회 행 → `MapMarker[]`. 식당별로 묶고, `lat` 또는 `lng`가 숫자가 아닌 행은 제외한다. 현재 스키마에서는 생기지 않지만 방어한다. 정렬은 방문 횟수 내림차순.
 - `initialView(markers, fallbackCenter)`(구현은 `src/app/(app)/records/initial-view.ts`. 클라이언트에서만 쓰므로 K2가 서버 헬퍼 대신 기록 화면 폴더에 두었다): 마커 0개면 `{ kind: 'center', center: fallbackCenter, zoom: 5 }`, 1개면 `{ kind: 'center', center: 그 마커, zoom: 4 }`, 2개 이상이면 `{ kind: 'bounds', points: 마커 좌표들 }`. 카카오 확대 단계는 숫자가 작을수록 가깝다(4 ≈ 100m 축척).
 - 기록 목록 가공(`toRecordRows`)은 지금 `listRecords` 안의 반복문을 그대로 옮긴 것이다. `levelAtTime` 계산은 바뀌지 않는다.
+- `toPlaceMarkers(rows)`: 장소 행 → `PlaceMarker[]`. 좌표가 유한한 숫자가 아닌 장소는 뺀다. 입력 순서(생성순)를 지킨다.
 
 ### 페이지가 클라이언트에 넘기는 것
 
@@ -104,10 +109,10 @@ type MapMarker = {
 | `src/app/(app)/records/initial-view.ts` | 순수 함수 | `initialView(markers, fallbackCenter)` → `InitialView`. 클라이언트에서만 쓰므로 여기에 둔다 |
 | `src/app/(app)/records/MarkerCard.tsx` | 클라이언트 | 선택된 마커의 식권 카드. `LevelStamps compact` 사용 |
 | `src/app/(app)/records/RecordsList.tsx` | 클라이언트 | 세션 C가 만든 목록 JSX를 옮긴 것. 항목 탭 시 `onPick(restaurantId)` |
-| `src/app/(app)/records/stamp-marker.ts` | 순수 함수 | `stampMarkerHtml({ visits, level, name, levelName, selected })` → CustomOverlay content 문자열 |
+| `src/app/(app)/records/stamp-marker.ts` | 순수 함수 | `stampMarkerHtml({ visits, level, name, levelName, selected })`와 `placeMarkerHtml({ name })` → CustomOverlay content 문자열 |
 | `src/types/kakao-maps.d.ts` | 타입 선언 | `window.kakao.maps` 중 쓰는 것만: `load`, `Map`, `LatLng`, `LatLngBounds`, `CustomOverlay`, `event.addListener`. 타입 패키지는 깔지 않는다 |
 
-CSS 클래스는 `globals.css`에 추가한다. 이름은 `map-screen`, `map-fab`, `map-ticket`, `map-notice`, `map-sheet`, `stamp-marker`(+ `l1`~`l5`, `selected`). 인라인 스타일은 쓰지 않는다.
+CSS 클래스는 `globals.css`에 추가한다. 이름은 `map-screen`, `map-fab`, `map-ticket`, `map-notice`, `map-sheet`, `stamp-marker`(+ `l1`~`l5`, `selected`), `place-marker`(+ `place-marker-dot`, `place-marker-name`). 인라인 스타일은 쓰지 않는다.
 
 ### 동작
 
@@ -115,6 +120,7 @@ CSS 클래스는 `globals.css`에 추가한다. 이름은 `map-screen`, `map-fab
 - **마커.** 각 마커는 CustomOverlay 하나. content는 `<button>`이고 탭 시 `onSelect`. 마커 탭이 지도 빈 곳 탭으로 이중 처리되지 않게 이벤트 전파를 막는다. 겹침 순서(zIndex)는 선택된 것이 가장 위, 그다음은 레벨이 낮을수록 위. 큰 도장이 작은 도장을 덮지 않게 하기 위해서다.
 - **선택.** 마커 탭 → 그 식당 선택, 카드 표시. 다른 마커 탭 → 교체. 지도 빈 곳 탭 또는 Esc → 해제. 카드에 닫기 버튼은 두지 않는다. 선택해도 지도는 움직이지 않는다.
 - **목록.** 플로팅 버튼 → 오버레이 열림, 버튼이 X로. X 또는 Esc → 닫힘. 오버레이가 열려 있어도 지도 인스턴스는 유지되며 닫으면 보던 위치 그대로다. 목록 항목 탭 → 오버레이 닫고 그 식당을 선택하며 지도 중심을 그 마커로 옮긴다(`panTo`).
+- **장소 마커(M8).** `places`마다 CustomOverlay 하나. content는 검은 점(ink 10px) + 흰 바탕 검은 테두리의 이름 라벨. 점이 좌표에 오고 라벨은 오른쪽으로 뻗는다(xAnchor 0, yAnchor 0.5). `clickable: false`와 `pointer-events: none`으로 탭이 지도로 통과하므로 카드 닫기를 방해하지 않는다. zIndex는 도장 마커보다 아래(0). 지도가 준비될 때 한 번 그린다.
 - **SDK 컨트롤.** 카카오 기본 확대 컨트롤과 지도 유형 컨트롤은 넣지 않는다. 핀치와 더블탭으로 확대한다. 플로팅 버튼 자리를 비워 두기 위해서다.
 - **움직임.** 없다. `prefers-reduced-motion`과 무관하게 마커, 카드, 오버레이 모두 즉시 나타나고 사라진다. `panTo`는 SDK 기본 이동을 쓴다.
 
@@ -170,6 +176,7 @@ CSS 클래스는 `globals.css`에 추가한다. 이름은 `map-screen`, `map-fab
 | 플로팅 버튼 라벨 | 기록 목록 보기 / 지도로 돌아가기 |
 | 마커 라벨 | {식당명}, 레벨 {N} {레벨 이름}, {N}회 방문 |
 | 지도 영역 라벨 | 다녀온 식당 지도 |
+| 장소 마커 라벨 | 장소 {장소 이름} |
 
 "마지막 방문 {M}월 {D}일"은 연도를 뺀다. 카드가 좁고, 연도가 필요한 정보는 목록에 있다. 형식 함수는 `src/lib/format.ts`에 `formatVisitMeta(visits, isoDate)`로 둔다.
 
@@ -185,6 +192,8 @@ CSS 클래스는 `globals.css`에 추가한다. 이름은 `map-screen`, `map-fab
 | `initialView` | 0개 → center fallback zoom 5. 1개 → center 그 마커 zoom 4. 2개 이상 → bounds에 좌표 전부 |
 | `stampMarkerHtml` | 레벨 1~5 각각 `l1`~`l5` 클래스. 숫자가 visits. aria-label 형식. selected면 `selected` 클래스, 아니면 없음. 식당명에 `<`가 있어도 HTML로 해석되지 않음(이스케이프) |
 | `formatVisitMeta` | (7, '2026-09-04') → "7회 방문, 마지막 방문 9월 4일". 앞 0 제거. 형식 이상이면 날짜 부분에 입력 그대로 |
+| `toPlaceMarkers` | id, 이름, 좌표만 남기고 순서 유지. lat null 또는 NaN인 장소 제외. 빈 입력 → 빈 배열 |
+| `placeMarkerHtml` | `place-marker` div에 점과 이름 span, `role="img"`, aria-label "장소 {이름}". 이름 이스케이프 |
 
 ### 계층 2. 서버 액션 (모의 클라이언트)
 
@@ -193,7 +202,7 @@ CSS 클래스는 `globals.css`에 추가한다. 이름은 `map-screen`, `map-fab
 - 로그인 안 됨 → `AUTH_REQUIRED`.
 - confirmed 행 3개(식당 둘) → `records` 3개, `markers` 2개, 두 결과의 `restaurantId`가 서로 연결됨.
 - select 문자열에 `lat`, `lng`, `restaurants(id`가 포함됨(빠뜨리면 마커가 0개가 되는 회귀 방지).
-- 장소 0건 → `fallbackCenter`가 서울시청 상수. 장소 있음 → 첫 장소 좌표.
+- 장소 전체가 생성순으로 `places`에 내려오고 select에 `id, name, lat, lng`. `fallbackCenter`는 첫 장소 좌표. 장소 0건 → `places` 빈 배열, `fallbackCenter`는 서울시청 상수.
 - 조회 오류 → `UNEXPECTED`.
 
 ### 계층 3. 화면 (수동, 390px)
@@ -227,6 +236,8 @@ localhost:3000, Chrome, 지도 폭 480px 가운데 정렬, 실제 카카오 Java
 | 12 | 데스크톱 폭 | 확인. 지도와 하단 탭이 같은 480px 폭으로 가운데 정렬 |
 
 정상 키에서는 콘솔 오류 없음. SDK 컨트롤(확대, 지도 유형)은 코드에 `addControl`이 없어 넣지 않았다.
+
+2026-09-07 M8 장소 마커 확인(로컬): 장소 "회사"가 검은 점과 라벨로 도장 마커 아래에 보임. 카드가 뜬 상태에서 라벨을 누르면 탭이 지도로 통과해 카드가 닫힘. 스크린샷 `06-place-marker.jpg`.
 스크린샷: `docs/superpowers/reviews/2026-09-04-personal-map/01-map.jpg`, `02-marker-card.jpg`, `03-list.jpg`, `05-failed.jpg`. `04-empty`는 항목 10을 확인하지 못해 없다.
 
 ## 이 스펙이 바꾸는 다른 문서

@@ -776,3 +776,31 @@ select {
   outline: 3px solid var(--seal);
   outline-offset: 6px;
 }
+
+/* 장소 마커(회사, 집). 검은 점 + 이름 라벨. 누를 수 없고 탭은 지도로 통과한다. */
+.place-marker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.place-marker-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 2px solid var(--paper);
+  box-shadow: 0 0 0 1px var(--ink);
+}
+
+.place-marker-name {
+  padding: 2px 6px;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1.5px solid var(--ink);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  line-height: 1.3;
+}

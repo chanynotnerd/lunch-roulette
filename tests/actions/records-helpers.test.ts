@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import * as helpers from '@/actions/records-helpers'
 import { toMarkers, toRecordRows, type JoinedRow } from '@/actions/records-helpers'
 
 const KIMBAP = { id: 'r-kimbap', name: '김밥천국', address: '강남대로 123', lat: 37.5, lng: 127.03 }
@@ -106,5 +107,31 @@ describe('toMarkers', () => {
   it('레벨은 방문 횟수를 레벨 표에 대입한 값이다 (7회 → 4 찐단골)', () => {
     const rows = [1, 2, 3, 4, 5, 6, 7].map((d) => row({ slot_date: `2026-09-0${d}` }))
     expect(toMarkers(rows)[0]).toMatchObject({ visits: 7, level: 4, levelName: '찐단골' })
+  })
+})
+
+describe('toPlaceMarkers', () => {
+  const { toPlaceMarkers } = helpers
+
+  it('장소 행을 id, 이름, 좌표만 남긴 마커로 바꾸고 입력 순서를 지킨다', () => {
+    const out = toPlaceMarkers([
+      { id: 'p-1', name: '회사', lat: 37.49, lng: 127.02 },
+      { id: 'p-2', name: '집', lat: 37.55, lng: 126.98 },
+    ])
+    expect(out).toEqual([
+      { id: 'p-1', name: '회사', lat: 37.49, lng: 127.02 },
+      { id: 'p-2', name: '집', lat: 37.55, lng: 126.98 },
+    ])
+  })
+
+  it('좌표가 없거나 유한하지 않은 장소는 뺀다. 빈 입력은 빈 배열', () => {
+    expect(toPlaceMarkers([])).toEqual([])
+    expect(
+      toPlaceMarkers([
+        { id: 'p-1', name: '회사', lat: null, lng: 127.02 },
+        { id: 'p-2', name: '집', lat: 37.55, lng: Number.NaN },
+        { id: 'p-3', name: '학교', lat: 37.5, lng: 127.0 },
+      ]).map((p) => p.id),
+    ).toEqual(['p-3'])
   })
 })

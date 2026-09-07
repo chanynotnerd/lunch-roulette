@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { stampMarkerHtml } from '@/app/(app)/records/stamp-marker'
+import { placeMarkerHtml, stampMarkerHtml } from '@/app/(app)/records/stamp-marker'
 
 const base = { visits: 7, level: 4, name: '김밥천국', levelName: '찐단골', selected: false }
 
@@ -32,5 +32,20 @@ describe('stampMarkerHtml', () => {
     const html = stampMarkerHtml({ ...base, name: '<b>"김밥" & 분식\'</b>' })
     expect(html).not.toContain('<b>')
     expect(html).toContain('aria-label="&lt;b&gt;&quot;김밥&quot; &amp; 분식&#39;&lt;/b&gt;, 레벨 4 찐단골, 7회 방문"')
+  })
+})
+
+describe('placeMarkerHtml', () => {
+  it('검은 점과 이름 라벨을 가진 누를 수 없는 마커. 접근성 라벨은 "장소 {이름}"', () => {
+    expect(placeMarkerHtml({ name: '회사' })).toBe(
+      '<div class="place-marker" role="img" aria-label="장소 회사"><span class="place-marker-dot"></span><span class="place-marker-name">회사</span></div>',
+    )
+  })
+
+  it('이름의 HTML 특수문자를 이스케이프한다', () => {
+    const html = placeMarkerHtml({ name: '<b>집</b> & "본가"' })
+    expect(html).not.toContain('<b>')
+    expect(html).toContain('aria-label="장소 &lt;b&gt;집&lt;/b&gt; &amp; &quot;본가&quot;"')
+    expect(html).toContain('<span class="place-marker-name">&lt;b&gt;집&lt;/b&gt; &amp; &quot;본가&quot;</span>')
   })
 })

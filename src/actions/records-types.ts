@@ -34,10 +34,20 @@ export type InitialView =
   | { kind: 'center'; center: LatLng; zoom: number }
   | { kind: 'bounds'; points: LatLng[] }
 
+/** 사용자의 장소(회사, 집). 지도에 검은 점과 이름 라벨로 표시한다. 누를 수 없다. */
+export type PlaceMarker = {
+  id: string
+  name: string
+  lat: number
+  lng: number
+}
+
 /** loadRecordsScreen이 돌려주는 것. 페이지가 그대로 RecordsScreen에 넘긴다. */
 export type RecordsScreenData = {
   records: RecordRow[]
   markers: MapMarker[]
+  /** 사용자의 장소 전부(생성순). 최대 10개. */
+  places: PlaceMarker[]
   /** 기록이 없을 때 지도 중심. 첫 장소 좌표, 없으면 서울시청. */
   fallbackCenter: LatLng
 }

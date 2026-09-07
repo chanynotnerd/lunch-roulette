@@ -56,6 +56,7 @@ export default function RecordsScreen({ data, kakaoJsKey, adminSlot }: Props) {
       <KakaoMap
         jsKey={kakaoJsKey}
         markers={data.markers}
+        places={data.places}
         selectedId={selectedId}
         initialView={view}
         panTarget={panTarget}

@@ -2,9 +2,9 @@
 
 import Script from 'next/script'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { InitialView, MapMarker } from '@/actions/records-types'
+import type { InitialView, MapMarker, PlaceMarker } from '@/actions/records-types'
 import type { KakaoMapInstance, KakaoOverlay } from '@/types/kakao-maps'
-import { stampMarkerHtml } from './stamp-marker'
+import { placeMarkerHtml, stampMarkerHtml } from './stamp-marker'
 
 /**
  * 카카오맵 SDK 로드, 지도 생성, 초기 범위, 마커 그리기. 스펙 16 KakaoMap.
@@ -16,12 +16,16 @@ const SDK_URL = 'https://dapi.kakao.com/v2/maps/sdk.js'
 const INIT_TIMEOUT_MS = 10_000
 const BOUNDS_PADDING = 48
 const SELECTED_Z = 100
+/** 장소 마커는 도장 마커(1~9, 선택 100)보다 아래. */
+const PLACE_Z = 0
 
 export type PanTarget = { id: string; nonce: number }
 
 type Props = {
   jsKey: string | null
   markers: MapMarker[]
+  /** 사용자의 장소. 검은 점 + 이름 라벨. 누를 수 없다. */
+  places: PlaceMarker[]
   selectedId: string | null
   initialView: InitialView
   panTarget: PanTarget | null
@@ -31,10 +35,11 @@ type Props = {
 
 type Status = 'loading' | 'ready' | 'failed'
 
-export default function KakaoMap({ jsKey, markers, selectedId, initialView, panTarget, onSelect, onDeselect }: Props) {
+export default function KakaoMap({ jsKey, markers, places, selectedId, initialView, panTarget, onSelect, onDeselect }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<KakaoMapInstance | null>(null)
   const overlaysRef = useRef<KakaoOverlay[]>([])
+  const placeOverlaysRef = useRef<KakaoOverlay[]>([])
   const [status, setStatus] = useState<Status>(jsKey ? 'loading' : 'failed')
 
   // 지도 이벤트 리스너는 한 번만 등록하므로 최신 콜백을 ref로 본다.
@@ -118,6 +123,28 @@ export default function KakaoMap({ jsKey, markers, selectedId, initialView, panT
       return overlay
     })
   }, [status, markers, selectedId])
+
+  // 장소 마커: 지도가 준비되면 그린다. 누를 수 없고(clickable: false) 탭은 지도로 통과한다.
+  useEffect(() => {
+    const maps = window.kakao?.maps
+    const map = mapRef.current
+    if (status !== 'ready' || !maps || !map) return
+    for (const o of placeOverlaysRef.current) o.setMap(null)
+    placeOverlaysRef.current = places.map((p) => {
+      const wrap = document.createElement('div')
+      wrap.innerHTML = placeMarkerHtml({ name: p.name })
+      const overlay = new maps.CustomOverlay({
+        position: new maps.LatLng(p.lat, p.lng),
+        content: wrap.firstElementChild as HTMLElement,
+        xAnchor: 0,
+        yAnchor: 0.5,
+        clickable: false,
+        zIndex: PLACE_Z,
+      })
+      overlay.setMap(map)
+      return overlay
+    })
+  }, [status, places])
 
   // 목록에서 항목을 고르면 그 마커로 이동.
   useEffect(() => {
