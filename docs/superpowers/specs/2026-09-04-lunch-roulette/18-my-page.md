@@ -22,7 +22,7 @@ Google 로그인을 쓰는데 앱 어디에도 누구로 로그인했는지 보�
 경로 `/me`. `(app)` 그룹 안의 서버 컴포넌트다. 위에서부터:
 
 1. 제목 "내 정보" (`.page-title`).
-2. 회원증 카드. 스펙 15의 식권 카드(`.ticket`) 어휘를 재사용한다. 왼쪽에 지름 56px 원형 사진, 오른쪽에 이름(표시 서체, `.ticket-name`)과 이메일(`.ticket-address`와 같은 muted 소문자). 카드는 누를 수 없다(버튼이 아닌 div).
+2. 회원증 카드. 스펙 15의 식권 카드(`.ticket`) 어휘를 재사용한다. 왼쪽에 지름 56px 원형 사진, 오른쪽에 이름(표시 서체, `.member-card-name` — `.ticket-name`과 같은 규칙에 `overflow-wrap`을 더한 것)과 이메일(`.member-card-email` — `.ticket-address`와 같은 muted 소문자). 카드는 누를 수 없다(버튼이 아닌 div).
 3. 카드 아래 muted 한 줄: "Google 계정으로 로그인되어 있습니다".
 4. 로그아웃 버튼. `.btn.btn-block`. 빨간 버튼(`.btn-primary`)은 쓰지 않는다. 스펙 15 "빨간 버튼은 홈의 돌리기 하나뿐".
 
@@ -117,6 +117,7 @@ async function loadProfile(): Promise<Profile | null>
 
 - [07-screens.md](07-screens.md): S5 추가, 공통 하단 탭 4개.
 - [15-visual-design.md](15-visual-design.md): 레이아웃 그림의 하단 탭 줄을 4칸으로.
+- [16-personal-map.md](16-personal-map.md): 레이아웃 그림의 하단 탭 줄을 4칸으로.
 - [13-backlog.md](13-backlog.md): B10 프로필 테이블·통계·회원 탈퇴 추가.
 - [README.md](README.md): 인덱스에 18 추가.
 
