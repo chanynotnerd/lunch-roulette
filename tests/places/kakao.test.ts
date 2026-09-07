@@ -122,8 +122,8 @@ describe('kakao.searchRestaurants', () => {
     for (const q of qs) {
       expect(q.radius).toBeNull()
       expect(q.category).toBe('FD6')
-      expect(q.sort).toBe('distance') // 변형 B: 'accuracy'
-      expect(q.x).toBe('127') // 변형 B: toBeNull()
+      expect(q.sort).toBe('distance')
+      expect(q.x).toBe('127')
     }
     expect(console.info).toHaveBeenCalledTimes(1)
     expect(console.info).toHaveBeenCalledWith(
@@ -187,7 +187,7 @@ describe('kakao.searchRestaurants', () => {
     expect(console.error).toHaveBeenCalledWith(
       expect.stringMatching(/^\[kakao\.searchRestaurants\] job failed cell=0 keyword=술집: Kakao .*HTTP 429/),
     )
-    expect(console.error).toHaveBeenCalledWith(expect.not.stringContaining('test-kakao-key'))
+    expect(console.error).not.toHaveBeenCalledWith(expect.stringContaining('test-kakao-key'))
   })
 
   it('요청에 API 키 헤더를 붙이고 캐시하지 않는다', async () => {

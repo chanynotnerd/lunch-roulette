@@ -1486,7 +1486,7 @@ Run: `npm run dev` (백그라운드)
 
 만든 테스트 장소 2개는 지우지 않는다(삭제는 주인님 확인 후, 작업 규칙). 보고서에 이름을 적는다.
 
-- [ ] **Step 3: 스파이크 스크립트 삭제** (마무리 단계로 이월)
+- [x] **Step 3: 스파이크 스크립트 삭제** (최종 수정 웨이브에서 삭제)
 
 Run: `rm scripts/spike-kakao-search.ts && git status --short`
 Expected: `scripts/` 관련 줄이 없다. `git log --all --oneline -- scripts/spike-kakao-search.ts`가 아무것도 출력하지 않는다(한 번도 커밋되지 않음).
