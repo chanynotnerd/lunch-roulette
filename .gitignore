@@ -36,3 +36,9 @@ next-env.d.ts
 
 # Claude Code worktree
 .claude/worktrees/
+
+# 브랜드 DESIGN.md 참고 자료(awesome-design-md 등) — 로컬 참고용, 커밋·배포 제외
+docs/design-refs/
+
+# Supabase CLI 캐시
+supabase/.temp/
