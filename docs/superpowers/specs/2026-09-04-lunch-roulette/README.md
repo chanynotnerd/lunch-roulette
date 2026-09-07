@@ -17,7 +17,7 @@
 | 04 | [04-data-model.md](04-data-model.md) | 데이터 모델 | 테이블 5개, hours JSON, 접근 제어 |
 | 05 | [05-rules.md](05-rules.md) | 규칙 | 슬롯, 영업시간 판정, 세션 상태, 레벨 |
 | 06 | [06-flows.md](06-flows.md) | 흐름 | 로그인, 장소 생성, 돌리기, 다시 돌리기, 확정, 만료 |
-| 07 | [07-screens.md](07-screens.md) | 화면 | 화면 4개와 상태별 표시 |
+| 07 | [07-screens.md](07-screens.md) | 화면 | 화면 5개와 상태별 표시 |
 | 08 | [08-errors.md](08-errors.md) | 오류 처리 | 오류 코드와 사용자 문구 |
 | 09 | [09-external-api.md](09-external-api.md) | 외부 API | Google API 사용 범위, 요금, 안전장치 |
 | 10 | [10-seed-and-overrides.md](10-seed-and-overrides.md) | 시드와 보정 | 영업시간 보정 파일과 시드 스크립트 |
@@ -28,6 +28,7 @@
 | 15 | [15-visual-design.md](15-visual-design.md) | 시각 디자인 | 단골 도장 카드 컨셉, 토큰, 서체, 레이아웃, 움직임, 접근성 |
 | 16 | [16-personal-map.md](16-personal-map.md) | 퍼스널 맵 | 기록 탭 전체 화면 카카오 지도, 식당별 도장 마커, 목록 오버레이. 시각 디자인 구현 이후 작업 |
 | 17 | [17-restaurant-search-expansion.md](17-restaurant-search-expansion.md) | 식당 수집 확장 | 카카오 키워드 9개 + 2×2 격자 질의로 45개 벽을 넘김. 장소당 200개 거리순, 반경 상한 1000m |
+| 18 | [18-my-page.md](18-my-page.md) | 내 정보 | 하단 탭 4번째 화면. Google 계정 사진·이름·이메일 표시와 로그아웃. DB 변경 없음 |
 
 ## 읽는 순서
 
