@@ -6,6 +6,8 @@ import DeletePlaceButton from './DeletePlaceButton'
 import PlaceForm from './PlaceForm'
 
 export const dynamic = 'force-dynamic'
+/** createPlace 가 카카오를 최대 108회 호출한다(스펙 17). Vercel 기본 10초에 가까워서 여유를 둔다. */
+export const maxDuration = 30
 
 /** S3. 장소 관리. */
 export default async function PlacesPage() {
