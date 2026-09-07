@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { GRID_THRESHOLD_M, gridCells } from '@/places/collect'
+import { GRID_THRESHOLD_M, capByDistance, gridCells } from '@/places/collect'
 
 const CENTER = { lat: 37.5, lng: 127.0 }
 const M_PER_DEG_LAT = 111_320
@@ -88,5 +88,42 @@ describe('gridCells', () => {
     const h0 = Math.max(...at0.map((r) => r.y2)) - Math.min(...at0.map((r) => r.y1))
     expect(w0).toBeCloseTo(h0, 9)
     expect(h0).toBeCloseTo((2 * R) / M_PER_DEG_LAT, 9)
+  })
+})
+
+type Item = { google_place_id: string; lat: number; lng: number }
+
+/** 중심에서 북쪽으로 dLat 만큼 떨어진 항목. 0.001도 ≈ 111m. */
+function at(id: string, dLat: number): Item {
+  return { google_place_id: id, lat: CENTER.lat + dLat, lng: CENTER.lng }
+}
+
+describe('capByDistance', () => {
+  it('중심 거리 오름차순으로 정렬한다', () => {
+    const list = [at('kakao:far', 0.003), at('kakao:near', 0.001), at('kakao:mid', 0.002)]
+    expect(capByDistance(CENTER, list, 10).map((i) => i.google_place_id)).toEqual(['kakao:near', 'kakao:mid', 'kakao:far'])
+  })
+
+  it('상한을 넘으면 먼 것부터 버린다', () => {
+    const list = [at('kakao:far', 0.003), at('kakao:near', 0.001), at('kakao:mid', 0.002)]
+    expect(capByDistance(CENTER, list, 2).map((i) => i.google_place_id)).toEqual(['kakao:near', 'kakao:mid'])
+  })
+
+  it('같은 거리는 id 문자열순으로 고정한다', () => {
+    const list = [at('kakao:b', 0.001), at('kakao:a', 0.001), at('kakao:10', 0.001)]
+    expect(capByDistance(CENTER, list, 10).map((i) => i.google_place_id)).toEqual(['kakao:10', 'kakao:a', 'kakao:b'])
+  })
+
+  it('상한 이하면 전부 유지하고 입력 배열은 바꾸지 않는다', () => {
+    const list = [at('kakao:far', 0.003), at('kakao:near', 0.001)]
+    const copy = [...list]
+    const out = capByDistance(CENTER, list, 5)
+    expect(out).toHaveLength(2)
+    expect(list).toEqual(copy)
+    expect(out).not.toBe(list)
+  })
+
+  it('빈 입력이면 빈 배열', () => {
+    expect(capByDistance(CENTER, [], 200)).toEqual([])
   })
 })

@@ -1,4 +1,5 @@
 import type { LatLng } from './types'
+import { distanceMeters } from './distance'
 
 /**
  * 식당 수집의 fetch 없는 순수 함수들 (스펙 17).
@@ -34,4 +35,22 @@ export function gridCells(center: LatLng, radiusM: number): Cell[] {
     { kind: 'rect', rect: `${W},${cy},${cx},${N}` },
     { kind: 'rect', rect: `${cx},${cy},${E},${N}` },
   ]
+}
+
+/**
+ * 중심 거리 오름차순 정렬 후 max 개까지. 같은 거리는 google_place_id 코드 단위 문자열순으로 고정해
+ * 결과를 결정적으로 만든다. (스펙 17 수집 알고리즘 3)
+ */
+export function capByDistance<T extends { google_place_id: string; lat: number; lng: number }>(
+  center: LatLng,
+  list: T[],
+  max: number,
+): T[] {
+  const withDistance = list.map((item) => ({ item, d: distanceMeters(center, { lat: item.lat, lng: item.lng }) }))
+  withDistance.sort((a, b) => {
+    if (a.d !== b.d) return a.d - b.d
+    if (a.item.google_place_id === b.item.google_place_id) return 0
+    return a.item.google_place_id < b.item.google_place_id ? -1 : 1
+  })
+  return withDistance.slice(0, Math.max(0, max)).map((w) => w.item)
 }
