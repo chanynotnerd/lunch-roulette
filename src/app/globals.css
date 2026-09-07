@@ -208,7 +208,7 @@ select {
   background: var(--paper);
   border-top: 1px solid var(--ink);
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr auto;
+  grid-template-columns: repeat(4, 1fr);
   align-items: stretch;
 }
 
@@ -235,19 +235,6 @@ select {
   bottom: 8px;
   height: 3px;
   background: var(--seal);
-}
-
-.tabbar form {
-  display: grid;
-}
-
-.tabbar-signout {
-  background: none;
-  border: none;
-  padding: 0 16px;
-  color: var(--muted);
-  font-size: var(--text-sm);
-  cursor: pointer;
 }
 
 /* 내 정보: 회원증 카드. 스펙 18. 식권(.ticket)과 같은 어휘, 누를 수 없다 */

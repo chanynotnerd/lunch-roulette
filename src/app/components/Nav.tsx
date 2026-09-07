@@ -2,15 +2,15 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { signOut } from '@/actions/auth'
 
 const TABS = [
   { href: '/', label: '홈' },
   { href: '/places', label: '장소' },
   { href: '/records', label: '기록' },
+  { href: '/me', label: '내 정보' },
 ] as const
 
-/** 하단 탭: 홈, 장소, 기록 + 로그아웃. 현재 화면은 aria-current로 표시한다. 스펙 07 공통, 15 접근성. */
+/** 하단 탭: 홈, 장소, 기록, 내 정보. 현재 화면은 aria-current로 표시한다. 로그아웃은 내 정보 안에 있다. 스펙 07 공통, 15 접근성, 18. */
 export default function Nav() {
   const pathname = usePathname()
   const isCurrent = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href))
@@ -22,11 +22,6 @@ export default function Nav() {
           {t.label}
         </Link>
       ))}
-      <form action={signOut}>
-        <button type="submit" className="tabbar-signout">
-          로그아웃
-        </button>
-      </form>
     </nav>
   )
 }
