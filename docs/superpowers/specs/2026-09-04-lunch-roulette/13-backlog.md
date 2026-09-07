@@ -44,7 +44,6 @@
 | A3 | 반경 범위 위반 시 동작 스펙 미정의 | 스펙 04, 08 | 현재 clamp. 스펙에 명시. |
 | A4 | 세션 상태 일관성 check 제약 | supabase/migrations | `status='confirmed' ⇔ chosen_restaurant_id/confirmed_at not null`. |
 | A5 | 0001 `create policy` 재실행 불가 | supabase/migrations/0001_init.sql | `drop policy if exists` 선행 검토. |
-| A6 | `listRecords` requireUser 위치 | src/actions/records.ts | 다른 액션과 스타일 통일. |
 | A7 | 읽기 경로도 RLS를 타게 할지 | src/actions/* | 모든 읽기가 서비스 롤이라 RLS가 실제로 안 쓰인다. `.eq('user_id')` 누락 시 방어선이 없다. |
 | A8 | `google_place_id` 컬럼명 | 스펙 04 | `kakao:` 접두 값을 넣고 있다. `provider_place_id`로 rename 검토. |
 | U2 | 관리자 초기화 버튼 확인 단계·실패 표시 없음 | src/app/components/AdminResetButton.tsx | `requireUser` 중복 호출도 정리. |
