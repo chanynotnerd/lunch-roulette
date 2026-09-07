@@ -30,7 +30,7 @@ Google 로그인 → 장소(주소) 등록 → 카카오 로컬 API로 반경 �
 
 ## 문서 위치
 
-- 스펙(source of truth): `docs/superpowers/specs/2026-09-04-lunch-roulette/` 01~16. 13은 백로그, 14는 유저플로우 해피케이스(Mermaid 원본), 15는 시각 디자인, 16은 퍼스널 맵(기록 탭 지도).
+- 스펙(source of truth): `docs/superpowers/specs/2026-09-04-lunch-roulette/` 01~18. 13은 백로그, 14는 유저플로우 해피케이스(Mermaid 원본), 15는 시각 디자인, 16은 퍼스널 맵(기록 탭 지도), 17은 식당 수집 확장, 18은 내 정보(마이페이지).
 - 계획: `docs/superpowers/plans/2026-09-04-lunch-roulette/README.md` (배포 결과 섹션 포함).
 - Figma Design 화면 캡처 플로우(완료): https://www.figma.com/design/swDjWYtHqtZzFEZmw31mdW.
 - Figma export 재사용 가이드: `docs/figma/userflow-export-guide.md` (참고 파일, 절차, 스크립트 템플릿, 체크리스트). 캡처 원본: `docs/figma/captures/`.
@@ -48,6 +48,7 @@ Google 로그인 → 장소(주소) 등록 → 카카오 로컬 API로 반경 �
 7. GitHub 원격 연결과 Vercel Git 연동(선택).
 8. 백로그(스펙 13) 순서대로.
 9. 퍼스널 맵 배포: Vercel 환경변수 `NEXT_PUBLIC_KAKAO_JS_KEY` 확인 후 `npx vercel --prod --yes`. 배포 후 프로덕션 도메인에서 지도가 뜨는지 확인(도메인 미등록이면 조용히 실패한다).
+10. 내 정보 화면(스펙 18) 2026-09-07 구현 완료(브랜치 feat/spec-18-my-page, 로컬에서 화면·이니셜 대체·탭 확인). 배포는 main 병합 후. 계획 `docs/superpowers/plans/2026-09-07-my-page.md`. 통계·탈퇴는 백로그 B10.
 
 ## 작업 규칙 (이 프로젝트에서 합의된 것)
 
