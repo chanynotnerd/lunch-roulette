@@ -8,7 +8,7 @@ export type Profile = {
   email: string | null
   /** avatar_url → picture → null */
   avatarUrl: string | null
-  /** 사진이 없을 때 원 안에 넣는 이름 첫 글자 */
+  /** 사진이 없을 때 원 안에 넣는 이름 첫 코드 포인트 */
   initial: string
 }
 
@@ -34,10 +34,10 @@ export function toProfile(user: ProfileSource): Profile {
   const name =
     nonEmptyString(meta.full_name) ??
     nonEmptyString(meta.name) ??
-    (email ? email.split('@')[0] : null) ??
+    nonEmptyString(email?.split('@')[0]) ??
     FALLBACK_NAME
   const avatarUrl = nonEmptyString(meta.avatar_url) ?? nonEmptyString(meta.picture)
-  return { name, email, avatarUrl, initial: name.charAt(0) }
+  return { name, email, avatarUrl, initial: [...name][0] ?? '' }
 }
 
 /** 현재 요청의 프로필. 비로그인이면 null. 화면 전용이며 서버 액션은 requireUser를 쓴다. */

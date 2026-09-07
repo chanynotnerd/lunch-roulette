@@ -62,4 +62,15 @@ describe('toProfile', () => {
     expect(p.email).toBe('meta@y.com')
     expect(p.name).toBe('meta')
   })
+
+  it('이메일의 @ 앞이 비어 있으면 "사용자"로 본다', () => {
+    const p = toProfile({ email: '@x.com', user_metadata: {} })
+    expect(p.name).toBe('사용자')
+    expect(p.initial).toBe('사')
+  })
+
+  it('이니셜은 첫 코드 포인트라 이모지 이름도 깨지지 않는다', () => {
+    const p = toProfile({ email: null, user_metadata: { full_name: '🍜 라면왕' } })
+    expect(p.initial).toBe('🍜')
+  })
 })
