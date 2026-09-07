@@ -81,7 +81,7 @@ Task 1~3은 서로 독립이고 같은 파일(`collect.ts`, `collect.test.ts`)�
 - Consumes: `distanceMeters` (`src/places/distance.ts`), `.env.local`의 `KAKAO_REST_API_KEY`.
 - Produces: 스펙 17 결과 표와 두 줄(병용 여부, 일 할당량), 그리고 Task 4가 고를 **변형 A/B** 결정. 변형 A = `rect` + `x/y` + `sort=distance`가 되고 문서가 rect 안에 머문다. 변형 B = 안 되므로 셀 질의는 `rect` + `sort=accuracy`만 보낸다.
 
-- [ ] **Step 1: 스크립트 작성** `scripts/spike-kakao-search.ts`
+- [x] **Step 1: 스크립트 작성** `scripts/spike-kakao-search.ts`
 
 ```ts
 /**
@@ -323,12 +323,12 @@ main().catch((e) => {
 })
 ```
 
-- [ ] **Step 2: 병용 확인 실행**
+- [x] **Step 2: 병용 확인 실행**
 
 Run: `npx tsx scripts/spike-kakao-search.ts rect`
 Expected: 세 줄이 찍힌다. 변형 A 줄이 `HTTP 200`, `rect안=docs`(모든 문서가 rect 안), `distance필드=true`, `오름차순=true`면 **변형 A** 채택. 하나라도 아니면 **변형 B** 채택. 결과 줄을 그대로 보관한다.
 
-- [ ] **Step 3: 개수 측정 실행 (4회)**
+- [x] **Step 3: 개수 측정 실행 (4회)**
 
 실제 장소 주소는 주인님께 묻는다. 답을 받을 수 없으면 계정에 있는 테스트 장소 주소 "청구로1길 23"을 쓰고 표에 그렇게 적는다.
 
@@ -343,11 +343,11 @@ Expected: 각각 마지막 줄에 `| 장소 | 반경 | … |` 표 행이 나온�
 
 변형 B로 결정됐다면 Step 3 전에 스크립트의 `newMethod` 안 주석대로 rect 셀 파라미터를 `{ rect: job.cell.rect, sort: 'accuracy' }`로 바꾸고 실행한다.
 
-- [ ] **Step 4: 일 할당량 확인**
+- [x] **Step 4: 일 할당량 확인**
 
 주인님이 직접 한다. https://developers.kakao.com/console/app 에서 앱 "점심 룰렛" 선택 → 왼쪽 메뉴 "쿼터"(또는 "앱 설정 > 쿼터") → "카카오 로컬(Local)" 항목의 일 한도 숫자와 오늘 사용량을 알려 달라고 요청한다. 스펙 17 본문에 적힌 300,000과 다르면 스펙 17 "문제" 절의 숫자와 09-external-api.md 55행의 숫자도 같이 고친다.
 
-- [ ] **Step 5: 스펙 17 결과 표 채우기**
+- [x] **Step 5: 스펙 17 결과 표 채우기**
 
 `17-restaurant-search-expansion.md`의 "### 결과 (스파이크 뒤 채움)" 절을 아래 형태로 채운다. 값은 Step 2~4의 출력 그대로. `(실제 장소)`는 실제 장소 이름으로 바꾼다.
 
@@ -366,7 +366,7 @@ Expected: 각각 마지막 줄에 `| 장소 | 반경 | … |` 표 행이 나온�
 - 일 할당량: 카카오 로컬 …회/일, 오늘 사용 …회 (콘솔 확인 …월 …일).
 ```
 
-- [ ] **Step 6: 스크립트가 미추적인지 확인하고 스펙과 계획만 커밋**
+- [x] **Step 6: 스크립트가 미추적인지 확인하고 스펙과 계획만 커밋**
 
 Run: `git status --short`
 Expected: `?? scripts/spike-kakao-search.ts` 로 보인다. 이 파일은 `git add`에 넣지 않는다.
@@ -396,7 +396,7 @@ Claude-Session: https://claude.ai/code/session_01Gc2BJELpBUT1NKLXAwiwsY"
   - `export type Cell = { kind: 'radius' } | { kind: 'rect'; rect: string }` — `rect`는 카카오 형식 `x1,y1,x2,y2`(왼쪽 아래 경도,위도,오른쪽 위 경도,위도).
   - `export function gridCells(center: LatLng, radiusM: number): Cell[]` — R ≤ 500이면 `[{ kind: 'radius' }]`, 아니면 남서·남동·북서·북동 순 rect 넷. Task 4가 쓴다.
 
-- [ ] **Step 1: 실패하는 테스트 작성** `tests/places/collect.test.ts`
+- [x] **Step 1: 실패하는 테스트 작성** `tests/places/collect.test.ts`
 
 ```ts
 import { describe, expect, it } from 'vitest'
@@ -493,12 +493,12 @@ describe('gridCells', () => {
 })
 ```
 
-- [ ] **Step 2: 실패 확인**
+- [x] **Step 2: 실패 확인**
 
 Run: `npx vitest run tests/places/collect.test.ts`
 Expected: FAIL. `Failed to resolve import "@/places/collect"` 또는 비슷한 모듈 없음 오류.
 
-- [ ] **Step 3: 구현** `src/places/collect.ts`
+- [x] **Step 3: 구현** `src/places/collect.ts`
 
 ```ts
 import type { LatLng } from './types'
@@ -540,12 +540,12 @@ export function gridCells(center: LatLng, radiusM: number): Cell[] {
 }
 ```
 
-- [ ] **Step 4: 통과 확인**
+- [x] **Step 4: 통과 확인**
 
 Run: `npx vitest run tests/places/collect.test.ts`
 Expected: PASS 4개.
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 git add src/places/collect.ts tests/places/collect.test.ts
@@ -567,7 +567,7 @@ Claude-Session: https://claude.ai/code/session_01Gc2BJELpBUT1NKLXAwiwsY"
 - Consumes: `distanceMeters` (`src/places/distance.ts`).
 - Produces: `export function capByDistance<T extends { google_place_id: string; lat: number; lng: number }>(center: LatLng, list: T[], max: number): T[]` — 입력 배열을 바꾸지 않고 새 배열을 돌려준다. 거리 오름차순, 같은 거리는 `google_place_id` 코드 단위 문자열순(`<` 비교, 로케일 무관). `max`개까지. Task 4가 `FoundRestaurant[]`로 쓴다.
 
-- [ ] **Step 1: 실패하는 테스트 추가** `tests/places/collect.test.ts` 끝에
+- [x] **Step 1: 실패하는 테스트 추가** `tests/places/collect.test.ts` 끝에
 
 import 줄을 이렇게 바꾼다.
 
@@ -616,12 +616,12 @@ describe('capByDistance', () => {
 })
 ```
 
-- [ ] **Step 2: 실패 확인**
+- [x] **Step 2: 실패 확인**
 
 Run: `npx vitest run tests/places/collect.test.ts`
 Expected: FAIL. `capByDistance is not a function` 또는 export 없음.
 
-- [ ] **Step 3: 구현** `src/places/collect.ts` 끝에 추가. 파일 맨 위 import에 `distanceMeters`를 넣는다.
+- [x] **Step 3: 구현** `src/places/collect.ts` 끝에 추가. 파일 맨 위 import에 `distanceMeters`를 넣는다.
 
 ```ts
 import { distanceMeters } from './distance'
@@ -647,12 +647,12 @@ export function capByDistance<T extends { google_place_id: string; lat: number; 
 }
 ```
 
-- [ ] **Step 4: 통과 확인**
+- [x] **Step 4: 통과 확인**
 
 Run: `npx vitest run tests/places/collect.test.ts`
 Expected: PASS 9개.
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 git add src/places/collect.ts tests/places/collect.test.ts
@@ -673,7 +673,7 @@ Claude-Session: https://claude.ai/code/session_01Gc2BJELpBUT1NKLXAwiwsY"
 **Interfaces:**
 - Produces: `export function mapWithConcurrency<T, R>(items: T[], limit: number, fn: (item: T, index: number) => Promise<R>): Promise<R[]>` — 결과는 입력 순서. 동시에 진행 중인 `fn`은 `limit`개 이하. 하나가 reject하면 아직 시작하지 않은 항목은 시작하지 않고 그 오류로 reject한다. 이미 진행 중인 것은 끝나도 결과를 쓰지 않는다(전체가 reject되므로). `limit`가 1 미만이거나 정수가 아니면 `RangeError`. 빈 입력이면 `[]`. Task 4가 쓴다.
 
-- [ ] **Step 1: 실패하는 테스트 추가** `tests/places/collect.test.ts` 끝에
+- [x] **Step 1: 실패하는 테스트 추가** `tests/places/collect.test.ts` 끝에
 
 import 줄:
 
@@ -776,12 +776,12 @@ describe('mapWithConcurrency', () => {
 import { describe, expect, it, vi } from 'vitest'
 ```
 
-- [ ] **Step 2: 실패 확인**
+- [x] **Step 2: 실패 확인**
 
 Run: `npx vitest run tests/places/collect.test.ts`
 Expected: FAIL. `mapWithConcurrency is not a function`.
 
-- [ ] **Step 3: 구현** `src/places/collect.ts` 끝에 추가
+- [x] **Step 3: 구현** `src/places/collect.ts` 끝에 추가
 
 ```ts
 /**
@@ -817,12 +817,12 @@ export async function mapWithConcurrency<T, R>(
 }
 ```
 
-- [ ] **Step 4: 통과 확인**
+- [x] **Step 4: 통과 확인**
 
 Run: `npx vitest run tests/places/collect.test.ts`
 Expected: PASS 15개.
 
-- [ ] **Step 5: 타입·린트 확인 후 커밋**
+- [x] **Step 5: 타입·린트 확인 후 커밋**
 
 Run: `npx tsc --noEmit && npm run lint`
 Expected: 오류 0.
@@ -861,7 +861,7 @@ Claude-Session: https://claude.ai/code/session_01Gc2BJELpBUT1NKLXAwiwsY"
 
 아래 코드는 변형 A로 적었다. 변형 B면 표시한 두 곳만 바꾼다.
 
-- [ ] **Step 1: 테스트 개편** `tests/places/kakao.test.ts` 전체를 아래로 바꾼다. `kakao.geocode` describe 블록은 기존 내용 그대로 옮긴다.
+- [x] **Step 1: 테스트 개편** `tests/places/kakao.test.ts` 전체를 아래로 바꾼다. `kakao.geocode` describe 블록은 기존 내용 그대로 옮긴다.
 
 ```ts
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -1183,12 +1183,12 @@ describe('kakao.geocode', () => {
 })
 ```
 
-- [ ] **Step 2: 실패 확인**
+- [x] **Step 2: 실패 확인**
 
 Run: `npx vitest run tests/places/kakao.test.ts`
 Expected: FAIL. `KEYWORDS` export 없음으로 여러 개 실패. `kakao.geocode` 5개는 PASS.
 
-- [ ] **Step 3: 구현** `src/places/kakao.ts`
+- [x] **Step 3: 구현** `src/places/kakao.ts`
 
 파일 전체를 아래로 바꾼다. `geocode`, `parsePage`, `toLatLng`, `apiKey`는 본문이 그대로이고 `kakaoGet`만 키를 인자로 받는다.
 
@@ -1355,17 +1355,17 @@ export async function searchRestaurants(center: LatLng, radiusM: number): Promis
 
 변형 B면 `cellParams`의 rect 분기를 `return { rect: cell.rect, sort: 'accuracy' }`로 바꾸고 그 위 주석도 "rect 셀은 x/y 를 보내지 않는다(스파이크 항목 1에서 병용 불가 확인)"로 고친다.
 
-- [ ] **Step 4: 통과 확인**
+- [x] **Step 4: 통과 확인**
 
 Run: `npx vitest run tests/places/kakao.test.ts`
 Expected: PASS 20개 (searchRestaurants 15 + geocode 5).
 
-- [ ] **Step 5: 전체 테스트·타입·린트**
+- [x] **Step 5: 전체 테스트·타입·린트**
 
 Run: `npm test && npx tsc --noEmit && npm run lint`
 Expected: 전부 통과. `tests/places/google.test.ts`와 `tests/actions/*.test.ts`는 건드리지 않았으므로 그대로 통과해야 한다. `kakao.ts`의 `parsePage` 등에서 unused 경고가 나면 그 자리에서 고친다.
 
-- [ ] **Step 6: 커밋**
+- [x] **Step 6: 커밋**
 
 ```bash
 git add src/places/kakao.ts tests/places/kakao.test.ts
@@ -1389,7 +1389,7 @@ Claude-Session: https://claude.ai/code/session_01Gc2BJELpBUT1NKLXAwiwsY"
 
 이 태스크는 상수 변경이라 새 단위 테스트를 만들지 않는다. `clampRadius`는 `'use server'` 파일 안의 비공개 함수라 직접 테스트할 수 없고, 폼의 `max`는 브라우저 검증이다. Task 6에서 실제 화면으로 확인한다.
 
-- [ ] **Step 1: 서버 상한**
+- [x] **Step 1: 서버 상한**
 
 `src/actions/places.ts`에서
 
@@ -1406,7 +1406,7 @@ const RADIUS_MAX = 1000
 
 로 바꾼다.
 
-- [ ] **Step 2: 폼 상한**
+- [x] **Step 2: 폼 상한**
 
 `src/app/(app)/places/PlaceForm.tsx`에서
 
@@ -1422,7 +1422,7 @@ const RADIUS_MAX = 1000
 
 로 바꾼다.
 
-- [ ] **Step 3: 서버 액션 시간 여유**
+- [x] **Step 3: 서버 액션 시간 여유**
 
 `src/app/(app)/places/page.tsx`의
 
@@ -1437,12 +1437,12 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 30
 ```
 
-- [ ] **Step 4: 검증**
+- [x] **Step 4: 검증**
 
 Run: `npx tsc --noEmit && npm run lint && npm test`
 Expected: 전부 통과.
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 git add src/actions/places.ts "src/app/(app)/places/PlaceForm.tsx" "src/app/(app)/places/page.tsx"
@@ -1467,12 +1467,12 @@ Claude-Session: https://claude.ai/code/session_01Gc2BJELpBUT1NKLXAwiwsY"
 **Interfaces:**
 - Consumes: Task 0~5 전부 커밋된 상태. `.env.local`의 `KAKAO_REST_API_KEY`, Supabase 키, `ROULETTE_ALLOW_ANY_TIME`은 무관.
 
-- [ ] **Step 1: 빌드**
+- [x] **Step 1: 빌드**
 
 Run: `npm run build`
 Expected: 성공. `maxDuration` 경고가 없어야 한다.
 
-- [ ] **Step 2: 로컬에서 실제 키로 장소 생성**
+- [x] **Step 2: 로컬에서 실제 키로 장소 생성**
 
 Run: `npm run dev` (백그라운드)
 브라우저(Chrome 도구)로 http://localhost:3000/login 에 가서 로그인한 뒤 /places 에서 장소를 만든다.
@@ -1486,12 +1486,12 @@ Run: `npm run dev` (백그라운드)
 
 만든 테스트 장소 2개는 지우지 않는다(삭제는 주인님 확인 후, 작업 규칙). 보고서에 이름을 적는다.
 
-- [ ] **Step 3: 스파이크 스크립트 삭제**
+- [ ] **Step 3: 스파이크 스크립트 삭제** (마무리 단계로 이월)
 
 Run: `rm scripts/spike-kakao-search.ts && git status --short`
 Expected: `scripts/` 관련 줄이 없다. `git log --all --oneline -- scripts/spike-kakao-search.ts`가 아무것도 출력하지 않는다(한 번도 커밋되지 않음).
 
-- [ ] **Step 4: 스펙 17 갱신**
+- [x] **Step 4: 스펙 17 갱신**
 
 "## 코드 구조" 표 끝에 행을 추가한다.
 
@@ -1505,7 +1505,7 @@ Expected: `scripts/` 관련 줄이 없다. `git log --all --oneline -- scripts/s
 2026-09-07 구현 완료. 계획은 [../../plans/2026-09-07-restaurant-search-expansion.md](../../plans/2026-09-07-restaurant-search-expansion.md). 로컬 확인 결과: 강남역 500m N곳, 1000m N곳(Step 2 값).
 ```
 
-- [ ] **Step 5: 스펙 14 갱신 (구현 뒤에만)**
+- [x] **Step 5: 스펙 14 갱신 (구현 뒤에만)**
 
 `14-userflow-happy-case.md` 24행의
 
@@ -1521,7 +1521,7 @@ Expected: `scripts/` 관련 줄이 없다. `git log --all --oneline -- scripts/s
 
 로 바꾼다. 41행의 "식당 N곳을 찾았습니다" 문구는 그대로다(E9). 그 밖의 문장에 60이나 45가 남아 있는지 `grep -n "60곳\|45" 14-userflow-happy-case.md`로 확인하고 있으면 같은 식으로 고친다.
 
-- [ ] **Step 6: 백로그와 인수인계 갱신**
+- [x] **Step 6: 백로그와 인수인계 갱신**
 
 `13-backlog.md` 79행
 
@@ -1545,7 +1545,7 @@ Expected: `scripts/` 관련 줄이 없다. `git log --all --oneline -- scripts/s
 
 같은 파일 "## 문서 위치"의 스펙 줄 "01~16"을 "01~17. 17은 식당 수집 확장"으로 고친다.
 
-- [ ] **Step 7: 문서 커밋과 push**
+- [x] **Step 7: 문서 커밋과 push**
 
 ```bash
 git add docs/superpowers/specs/2026-09-04-lunch-roulette/17-restaurant-search-expansion.md docs/superpowers/specs/2026-09-04-lunch-roulette/14-userflow-happy-case.md docs/superpowers/specs/2026-09-04-lunch-roulette/13-backlog.md docs/superpowers/handoff/2026-09-04-session-handoff.md docs/superpowers/plans/2026-09-07-restaurant-search-expansion.md
@@ -1558,13 +1558,13 @@ git push origin main
 
 인수인계 파일에는 이 계획과 무관한 기존 미커밋 수정 2줄이 있다. 그 내용을 `git diff docs/superpowers/handoff/2026-09-04-session-handoff.md`로 먼저 읽고, 이 커밋에 함께 들어가도 되는 문서 수정이면 그대로 포함하고 보고서에 적는다.
 
-- [ ] **Step 8: 프로덕션 배포 확인**
+- [ ] **Step 8: 프로덕션 배포 확인** (마무리 단계로 이월)
 
 push로 Vercel Git 연동 배포가 시작된다. `npx vercel ls lunch-roulette` 또는 Vercel MCP `list_deployments`로 최신 배포가 Ready인지 확인한다. https://lunch-roulette-sooty.vercel.app/places 가 200으로 열리는지 확인한다.
 
 프로덕션에서 1000m 장소 생성은 Google 로그인이 필요해 주인님이 직접 한다("주인님이 직접 할 일" 참고).
 
-- [ ] **Step 9: 보고**
+- [x] **Step 9: 보고**
 
 바꾼 파일, 커밋 해시 목록, `npm test` 출력의 마지막 요약 줄, Step 2의 로그 한 줄과 식당 수, 남겨 둔 테스트 장소 이름, 스펙과 다르게 한 것(`GRID_THRESHOLD_M` 위치, `maxDuration` 추가), 배포 상태.
 

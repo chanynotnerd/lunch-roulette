@@ -74,6 +74,8 @@
 
 ## 코드 구조
 
+2026-09-07 구현 완료. 계획은 [../../plans/2026-09-07-restaurant-search-expansion.md](../../plans/2026-09-07-restaurant-search-expansion.md). 로컬 확인 결과: 강남역 500m 200곳, 1000m 200곳(Step 2 값).
+
 `search.ts` 시그니처 `searchRestaurants(center, radiusM)`, `createPlace`, `FoundRestaurant` 타입은 바꾸지 않는다. RPC `create_place_with_restaurants`는 시그니처와 본문을 유지하고 0005의 식당 개수 상한만 100 → 300으로 올린다(앱은 최대 200개까지 보낸다, 구현 중 발견, 마이그레이션 0006). Google 어댑터는 건드리지 않는다(B7).
 
 | 파일 | 변경 | 내용 |
@@ -82,7 +84,8 @@
 | `src/places/kakao.ts` | 수정 | 상수 `KEYWORDS`(9개), `GRID_THRESHOLD_M = 500`, `MAX_RESTAURANTS = 200`, `CONCURRENCY = 5`, `MAX_PAGES = 3`. `searchRestaurants`는 셀 × 키워드 작업을 만들어 `mapWithConcurrency`로 돌리고 Map에 합친 뒤 `capByDistance`. `geocode`와 문서 파싱은 그대로 |
 | `src/actions/places.ts` | 수정 | `RADIUS_MAX` 2000 → 1000 |
 | `src/app/(app)/places/PlaceForm.tsx` | 수정 | 반경 입력 `max={1000}` |
-| `supabase/migrations/0006_rpc_restaurant_cap_300.sql` | 신설 | RPC 심층 방어 상한 `> 100` → `> 300`(앱은 최대 200개까지 보낸다). 0005 본문 복사, 숫자와 메시지만 변경. 적용 전에는 200개 장소 생성이 `too many restaurants`로 실패한다 |
+| `supabase/migrations/0006_rpc_restaurant_cap_300.sql` | 신설 | RPC 심층 방어 상한 `> 100` → `> 300`(앱은 최대 200개까지 보낸다). 0005 본문 복사, 숫자와 메시지만 변경. DB 상한이 100이던 동안에는 200개 장소 생성이 `too many restaurants`로 실패했다(2026-09-07 적용 완료) |
+| `src/app/(app)/places/page.tsx` | 수정 | `export const maxDuration = 30`. 서버 액션이 최악 6초 + 지오코딩 + DB라 Vercel 기본 10초에 여유를 둔다. 구현 중 추가 |
 
 이미 1000m 넘게 만든 장소는 그대로 둔다. 새 범위는 새로 만들 때만 적용된다.
 
@@ -127,7 +130,7 @@
 
 - `rect` + `x/y` + `sort=distance` 병용: 가능. (변형 A 줄 출력: HTTP 200, docs=15, rect안=15, distance필드=true, 오름차순=true). 셀 질의는 변형 A로 구현한다.
 - 동시 5 실행: 429 없음.
-- 일 할당량(2026-09-07 콘솔 > 통계 > 쿼터): 키워드 검색 100,000회/일, 주소 검색 100,000회/일, 지도 SDK 300,000회/일, 무료 API 전체 3,000,000회/월. 오늘 키워드 검색 사용 218회(스파이크 포함). 1000m 장소 하나가 최대 108회이므로 하루 약 900개까지 만들 수 있다.
+- 일 할당량(2026-09-07 콘솔 > 통계 > 쿼터): 키워드 검색 100,000회/일, 주소 검색 100,000회/일, 지도 SDK 300,000회/일, 무료 API 전체 3,000,000회/월. 오늘 키워드 검색 사용 218회(스파이크 포함). 1000m 장소 하나가 최대 108회이므로 하루 약 900개까지 만들 수 있다(최악 108회 기준. 실측은 71~84회라 실제 여유는 더 크다).
 
 ## 이 스펙이 바꾸는 다른 문서
 
