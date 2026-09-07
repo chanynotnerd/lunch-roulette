@@ -33,3 +33,6 @@ next-env.d.ts
 
 # superpowers 브레인스토밍 비주얼 컴패니언 세션 파일
 .superpowers/
+
+# Claude Code worktree
+.claude/worktrees/
