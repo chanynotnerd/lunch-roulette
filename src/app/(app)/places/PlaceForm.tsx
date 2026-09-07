@@ -76,7 +76,7 @@ export default function PlaceForm() {
           name="radius"
           type="number"
           min={100}
-          max={2000}
+          max={1000}
           step={50}
           value={radius}
           onChange={(e) => setRadius(Number(e.target.value))}

@@ -11,7 +11,7 @@ Google 로그인 → 장소(주소) 등록 → 카카오 로컬 API로 반경 �
 - 저장소: `C:\Users\beafter-window\project\lunch-roulette`, 브랜치 main, 커밋 40개, 최신 `5e44946`. 원격(GitHub) 없음.
 - 작업 트리에 다른 Claude 세션(코드리뷰)이 남긴 미커밋 변경 39개 파일이 있다. 테스트는 통과(222개). 그 세션이 커밋을 마치면 `npx vercel --prod --yes`로 한 번 더 배포한다.
 - 프로덕션: https://lunch-roulette-sooty.vercel.app (Vercel 프로젝트 lunch-roulette, 계정 boltwriter721-2668). 로그인 화면까지 확인됨.
-- Vercel production 환경변수 8개: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, KAKAO_REST_API_KEY, PLACES_PROVIDER=kakao, ADMIN_EMAILS, NEXT_PUBLIC_SITE_URL, **ROULETTE_ALLOW_ANY_TIME=true(테스트용, 끝나면 제거 후 재배포)**.
+- Vercel production 환경변수 8개: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, KAKAO_REST_API_KEY, PLACES_PROVIDER=kakao, ADMIN_EMAILS, NEXT_PUBLIC_SITE_URL, NEXT_PUBLIC_KAKAO_JS_KEY. ROULETTE_ALLOW_ANY_TIME은 2026-09-07 제거 후 재배포 완료(운영에서는 슬롯 밖이면 '다음 룰렛은 HH:MM에 열립니다').
 - 로컬: `.env.local`에 같은 값 + `ROULETTE_ALLOW_ANY_TIME=true`. `npm run dev`로 http://localhost:3000.
 - Supabase 프로젝트 ref `ybqsyjngvdjrenylrffd`(조직 lunch-roulette, Free). 마이그레이션 0001~0004 적용 완료. Google 로그인 Enabled. Redirect URLs: localhost와 Vercel 도메인의 `/auth/callback`.
 - Google Cloud 프로젝트 lunch-roulette-507605(계정 boltwriter721@gmail.com): OAuth 클라이언트 lunch-roulette-supabase, 테스트 사용자 boltwriter721@gmail.com만 등록. **Maps API는 결제 계정 해지 상태라 사용 불가** → 카카오로 전환(D17).
@@ -42,13 +42,14 @@ Google 로그인 → 장소(주소) 등록 → 카카오 로컬 API로 반경 �
 1. ~~Figma MCP 연결~~ 완료. 이 프로젝트 Local 범위로 등록됨(`claude mcp get figma`). 플랜은 "김찬영의 팀"(team::1676518265841055462, starter) 하나.
 2. ~~FigJam에 해피케이스 그리기~~ 완료. `generate_diagram`이 파일을 직접 만들므로 `create_new_file`은 필요 없다. 보드 URL은 스펙 14에 기록.
 3. ~~Figma Design 유저플로우~~ 완료. https://www.figma.com/design/swDjWYtHqtZzFEZmw31mdW — 프로덕션 캡처 9장(로그인, 장소 관리, 장소 상세, 홈 세션 없음, 애니메이션, 후보 3장, 확정 확인, 확정 결과, 기록)을 가로 배치하고 섹션 5개와 범례 패널을 넣음. 캡처 원본은 세션 스크래치패드에만 있음. 홈 세션 없음 캡처에 마우스 커서가 찍혀 있어 재캡처 여지 있음.
-4. 테스트 끝나면 Vercel의 `ROULETTE_ALLOW_ANY_TIME` 제거 후 재배포.
+4. ~~테스트 끝나면 Vercel의 `ROULETTE_ALLOW_ANY_TIME` 제거 후 재배포.~~ 2026-09-07 완료.
 5. 다른 세션의 코드리뷰 커밋 확인 후 재배포.
 6. worktree 정리(사용자 확인 후): `git worktree remove ../lunch-roulette-A` (B, C, D 동일) + `git branch -d session-a session-b session-c session-d`.
 7. GitHub 원격 연결과 Vercel Git 연동(선택).
 8. 백로그(스펙 13) 순서대로.
 9. 퍼스널 맵 배포: Vercel 환경변수 `NEXT_PUBLIC_KAKAO_JS_KEY` 확인 후 `npx vercel --prod --yes`. 배포 후 프로덕션 도메인에서 지도가 뜨는지 확인(도메인 미등록이면 조용히 실패한다).
-10. 내 정보 화면(스펙 18) 2026-09-07 구현 완료(브랜치 feat/spec-18-my-page, 로컬에서 화면·이니셜 대체·탭 확인). 배포는 main 병합 후. 계획 `docs/superpowers/plans/2026-09-07-my-page.md`. 통계·탈퇴는 백로그 B10.
+10. ~~스펙 17 식당 수집 확장~~ 2026-09-07 구현·배포 완료. 키워드 9개 × 셀(500m 초과 2×2 rect), 동시 5, 거리순 200개, 반경 상한 1000m. 스파이크 결과는 스펙 17 결과 표. 기존 45개로 만든 장소는 지우고 다시 만들어야 늘어난다(E8, B3). 마이그레이션 0006(RPC 식당 상한 100→300)을 Supabase에 적용했다. 카카오 로컬 일 할당량은 키워드·주소 각 100,000회(콘솔 확인).
+11. 내 정보 화면(스펙 18) 2026-09-07 구현 완료(브랜치 feat/spec-18-my-page, 로컬에서 화면·이니셜 대체·탭 확인). 배포는 main 병합 후. 계획 `docs/superpowers/plans/2026-09-07-my-page.md`. 통계·탈퇴는 백로그 B10.
 
 ## 작업 규칙 (이 프로젝트에서 합의된 것)
 

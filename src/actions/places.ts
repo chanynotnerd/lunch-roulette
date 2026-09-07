@@ -32,7 +32,8 @@ export type PlaceRestaurant = {
 }
 
 const RADIUS_MIN = 100
-const RADIUS_MAX = 2000
+/** 스펙 17 E5: 1000m 초과는 3×3 격자가 필요해 호출이 너무 많다. 기존 1000m 초과 장소는 그대로 둔다. */
+const RADIUS_MAX = 1000
 const RADIUS_DEFAULT = 500
 
 function clampRadius(value: number): number {
