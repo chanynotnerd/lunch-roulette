@@ -16,6 +16,7 @@ Google 로그인 → 장소(주소) 등록 → 카카오 로컬 API로 반경 �
 - Supabase 프로젝트 ref `ybqsyjngvdjrenylrffd`(조직 lunch-roulette, Free). 마이그레이션 0001~0004 적용 완료. Google 로그인 Enabled. Redirect URLs: localhost와 Vercel 도메인의 `/auth/callback`.
 - Google Cloud 프로젝트 lunch-roulette-507605(계정 boltwriter721@gmail.com): OAuth 클라이언트 lunch-roulette-supabase, 테스트 사용자 boltwriter721@gmail.com만 등록. **Maps API는 결제 계정 해지 상태라 사용 불가** → 카카오로 전환(D17).
 - 카카오 개발자 앱 "점심 룰렛"(ID 1567010), 카카오맵 사용 설정 ON, REST API 키 사용 중.
+- 카카오 앱 "점심 룰렛"에 JavaScript 키를 쓴다(퍼스널 맵, 스펙 16). Web 플랫폼 도메인: localhost:3000, Vercel 주소. 환경변수 `NEXT_PUBLIC_KAKAO_JS_KEY`는 `.env.local`과 Vercel에 있다(Vercel 등록 여부는 배포 시 확인). JS SDK 도메인은 카카오 콘솔의 플랫폼 키 > JavaScript 키 > 수정 화면에서 등록했다(localhost:3000, lunch-roulette-sooty.vercel.app).
 - git worktree 4개(`../lunch-roulette-A~D`, 브랜치 session-a~d)는 전부 main에 병합됨. 삭제해도 안전(약 2.2GB). 삭제는 사용자 확인 후.
 - 테스트 데이터: 장소 "강남역 테스트", "청구로1길 23" 등이 boltwriter721 계정에 있다.
 
@@ -29,8 +30,10 @@ Google 로그인 → 장소(주소) 등록 → 카카오 로컬 API로 반경 �
 
 ## 문서 위치
 
-- 스펙(source of truth): `docs/superpowers/specs/2026-09-04-lunch-roulette/` 01~14. 13은 백로그, 14는 유저플로우 해피케이스(Mermaid 원본).
+- 스펙(source of truth): `docs/superpowers/specs/2026-09-04-lunch-roulette/` 01~16. 13은 백로그, 14는 유저플로우 해피케이스(Mermaid 원본), 15는 시각 디자인, 16은 퍼스널 맵(기록 탭 지도).
 - 계획: `docs/superpowers/plans/2026-09-04-lunch-roulette/README.md` (배포 결과 섹션 포함).
+- Figma Design 화면 캡처 플로우(완료): https://www.figma.com/design/swDjWYtHqtZzFEZmw31mdW.
+- Figma export 재사용 가이드: `docs/figma/userflow-export-guide.md` (참고 파일, 절차, 스크립트 템플릿, 체크리스트). 캡처 원본: `docs/figma/captures/`.
 - FigJam 보드(완료): https://www.figma.com/board/TYKrI6JL3kwlVwbXDZyTXL. 예비용 SVG: `docs/figma/userflow-happy-case-1.svg`(플로우), `-2.svg`(상태 전이).
 - 코드리뷰 결과(다른 세션): `docs/reviews/2026-09-04-code-review.md`.
 
@@ -38,12 +41,13 @@ Google 로그인 → 장소(주소) 등록 → 카카오 로컬 API로 반경 �
 
 1. ~~Figma MCP 연결~~ 완료. 이 프로젝트 Local 범위로 등록됨(`claude mcp get figma`). 플랜은 "김찬영의 팀"(team::1676518265841055462, starter) 하나.
 2. ~~FigJam에 해피케이스 그리기~~ 완료. `generate_diagram`이 파일을 직접 만들므로 `create_new_file`은 필요 없다. 보드 URL은 스펙 14에 기록.
-3. **(대기) Figma Design 유저플로우**: 사용자가 디자인을 바꿔 Vercel에 배포한 뒤 진행. 프로덕션 화면을 Chrome으로 캡처 → `create_new_file`(design) → `upload_assets`로 이미지 일괄 업로드 → `use_figma`로 S1→S4 순서 배치와 화살표. Figma 호출 약 3회(Starter 플랜 월 20회 한도, 이미 5회 사용). 로그인 후 화면은 사용자가 Chrome에서 직접 로그인한 뒤 캡처. 돌리기·확정 캡처는 세션이 생기므로 사용자 확인 후.
+3. ~~Figma Design 유저플로우~~ 완료. https://www.figma.com/design/swDjWYtHqtZzFEZmw31mdW — 프로덕션 캡처 9장(로그인, 장소 관리, 장소 상세, 홈 세션 없음, 애니메이션, 후보 3장, 확정 확인, 확정 결과, 기록)을 가로 배치하고 섹션 5개와 범례 패널을 넣음. 캡처 원본은 세션 스크래치패드에만 있음. 홈 세션 없음 캡처에 마우스 커서가 찍혀 있어 재캡처 여지 있음.
 4. 테스트 끝나면 Vercel의 `ROULETTE_ALLOW_ANY_TIME` 제거 후 재배포.
 5. 다른 세션의 코드리뷰 커밋 확인 후 재배포.
 6. worktree 정리(사용자 확인 후): `git worktree remove ../lunch-roulette-A` (B, C, D 동일) + `git branch -d session-a session-b session-c session-d`.
 7. GitHub 원격 연결과 Vercel Git 연동(선택).
 8. 백로그(스펙 13) 순서대로.
+9. 퍼스널 맵 배포: Vercel 환경변수 `NEXT_PUBLIC_KAKAO_JS_KEY` 확인 후 `npx vercel --prod --yes`. 배포 후 프로덕션 도메인에서 지도가 뜨는지 확인(도메인 미등록이면 조용히 실패한다).
 
 ## 작업 규칙 (이 프로젝트에서 합의된 것)
 

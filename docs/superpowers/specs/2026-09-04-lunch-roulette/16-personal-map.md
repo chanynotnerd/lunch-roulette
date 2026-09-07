@@ -67,7 +67,7 @@ type MapMarker = {
 ### 순수 함수 (`src/actions/records-helpers.ts`)
 
 - `toMarkers(rows)`: 조회 행 → `MapMarker[]`. 식당별로 묶고, `lat` 또는 `lng`가 숫자가 아닌 행은 제외한다. 현재 스키마에서는 생기지 않지만 방어한다. 정렬은 방문 횟수 내림차순.
-- `initialView(markers, fallbackCenter)`: 마커 0개면 `{ kind: 'center', center: fallbackCenter, zoom: 5 }`, 1개면 `{ kind: 'center', center: 그 마커, zoom: 4 }`, 2개 이상이면 `{ kind: 'bounds', points: 마커 좌표들 }`. 카카오 확대 단계는 숫자가 작을수록 가깝다(4 ≈ 100m 축척).
+- `initialView(markers, fallbackCenter)`(구현은 `src/app/(app)/records/initial-view.ts`. 클라이언트에서만 쓰므로 K2가 서버 헬퍼 대신 기록 화면 폴더에 두었다): 마커 0개면 `{ kind: 'center', center: fallbackCenter, zoom: 5 }`, 1개면 `{ kind: 'center', center: 그 마커, zoom: 4 }`, 2개 이상이면 `{ kind: 'bounds', points: 마커 좌표들 }`. 카카오 확대 단계는 숫자가 작을수록 가깝다(4 ≈ 100m 축척).
 - 기록 목록 가공(`toRecordRows`)은 지금 `listRecords` 안의 반복문을 그대로 옮긴 것이다. `levelAtTime` 계산은 바뀌지 않는다.
 
 ### 페이지가 클라이언트에 넘기는 것
@@ -100,7 +100,8 @@ type MapMarker = {
 |---|---|---|
 | `src/app/(app)/records/page.tsx` | 서버 | `loadRecordsScreen` 호출, `AUTH_REQUIRED`면 `/login`으로, 실패면 오류 문구, 성공이면 `RecordsScreen` |
 | `src/app/(app)/records/RecordsScreen.tsx` | 클라이언트 | 상태 두 개: 선택된 식당 id, 목록 열림 여부. 아래 넷을 조립 |
-| `src/app/(app)/records/KakaoMap.tsx` | 클라이언트 | SDK 로드, 지도 생성, 초기 범위, 마커 그리기와 갱신. props: markers, selectedId, initialView, onSelect(id), onDeselect(), onFail(). 카카오 객체는 이 파일 밖으로 나가지 않는다 |
+| `src/app/(app)/records/KakaoMap.tsx` | 클라이언트 | SDK 로드, 지도 생성, 초기 범위, 마커 그리기와 갱신. props: jsKey, markers, selectedId, initialView, panTarget, onSelect(id), onDeselect(). 키 없음, 스크립트 onError, 10초 타임아웃은 이 컴포넌트 안에서 `map-fail` 상자로 그린다(onFail 콜백 없음). 카카오 객체는 이 파일 밖으로 나가지 않는다 |
+| `src/app/(app)/records/initial-view.ts` | 순수 함수 | `initialView(markers, fallbackCenter)` → `InitialView`. 클라이언트에서만 쓰므로 여기에 둔다 |
 | `src/app/(app)/records/MarkerCard.tsx` | 클라이언트 | 선택된 마커의 식권 카드. `LevelStamps compact` 사용 |
 | `src/app/(app)/records/RecordsList.tsx` | 클라이언트 | 세션 C가 만든 목록 JSX를 옮긴 것. 항목 탭 시 `onPick(restaurantId)` |
 | `src/app/(app)/records/stamp-marker.ts` | 순수 함수 | `stampMarkerHtml({ visits, level, name, levelName, selected })` → CustomOverlay content 문자열 |
@@ -123,7 +124,7 @@ CSS 클래스는 `globals.css`에 추가한다. 이름은 `map-screen`, `map-fab
 - 지도 컨테이너: `role="region"`, `aria-label="다녀온 식당 지도"`.
 - 마커 버튼: `aria-label="{식당명}, 레벨 {N} {이름}, {N}회 방문"`, 선택 시 `aria-pressed="true"`.
 - 플로팅 버튼: `aria-label`은 닫힘 상태 "기록 목록 보기", 열림 상태 "지도로 돌아가기". `aria-expanded`.
-- 오버레이: `role="dialog"`, `aria-modal="true"`, `aria-labelledby`는 "기록" 제목. 열릴 때 제목으로 포커스, 닫힐 때 플로팅 버튼으로 복귀.
+- 오버레이: `role="dialog"`, `aria-labelledby`는 "기록" 제목. 플로팅 버튼이 닫기 역할이라 `aria-modal`은 두지 않는다. 열릴 때 제목으로 포커스, 닫힐 때 플로팅 버튼으로 복귀.
 - 카드: `role="status"`로 선택 변경을 알린다. 도장 5칸은 `LevelStamps`의 라벨 그대로.
 - 포커스 링은 15와 같이 seal 3px.
 
@@ -205,6 +206,28 @@ CSS 클래스는 `globals.css`에 추가한다. 이름은 `map-screen`, `map-fab
 - 기록 없는 계정: 안내 상자와 기본 중심.
 - 키를 일부러 틀리게 넣고: 실패 상자가 뜨고 목록은 동작한다.
 - 키보드만으로 플로팅 버튼과 목록을 오갈 수 있다.
+
+#### 확인 결과 (2026-09-07, 계획 K3-3)
+
+localhost:3000, Chrome, 지도 폭 480px 가운데 정렬, 실제 카카오 JavaScript 키, 기록 1건인 관리자 계정으로 확인했다.
+
+| 번호 | 확인 | 결과 |
+|---|---|---|
+| 1 | 진입 | 확인. 마커 1개라 그 지점 중심 확대 4. 오른쪽 위 플로팅 버튼(흰 바탕, 검은 테두리 2겹) |
+| 2 | 드래그, 확대 | 확인. 드래그로 이동, 휠로 확대(축척 100m → 50m) |
+| 3 | 마커 탭 | 확인. 검은 고리, 하단 식권 카드(이름, 주소, "1회 방문, 마지막 방문 9월 4일", 도장 5칸 중 2개와 "익숙"). 플로팅 버튼과 겹치지 않음 |
+| 4 | 다른 마커 탭 | 미확인. 계정에 마커가 1개뿐 |
+| 5 | 지도 빈 곳 탭 | 확인. 카드 닫힘 |
+| 6 | 플로팅 버튼 | 확인. 흰 오버레이, "기록" 제목, 관리자 초기화 버튼, 식권 더미 목록 1건, 버튼이 X로 바뀜 |
+| 7 | 목록 항목 탭 | 확인. 오버레이 닫히고 마커 선택(고리)과 카드 표시, 지도가 마커로 이동(드래그 후 재확인) |
+| 8 | X, Esc | 확인. Esc로 목록 닫힘, Esc로 카드 닫힘. 닫힌 뒤 플로팅 버튼에 포커스 링 |
+| 9 | 키보드만 | 확인. 플로팅 버튼 → Enter → 목록 → Tab 2번으로 항목(빨간 포커스 링) → Enter → 지도 복귀, 마커 선택, 포커스는 플로팅 버튼 |
+| 10 | 기록 없는 계정 | 미확인. 다른 계정이 없음 |
+| 11 | 틀린 키 | 확인. 회색 바탕 위에 "지도를 표시할 수 없습니다. 목록으로 볼 수 있습니다" 상자, 플로팅 버튼과 목록 정상 동작. 콘솔에 "[KakaoMap] SDK 스크립트 로드 실패"와 10초 뒤 "[KakaoMap] 지도 초기화 시간 초과"(React StrictMode 이중 마운트로 각 2회). 키 원복 후 지도가 다시 뜨는 것까지 확인 |
+| 12 | 데스크톱 폭 | 확인. 지도와 하단 탭이 같은 480px 폭으로 가운데 정렬 |
+
+정상 키에서는 콘솔 오류 없음. SDK 컨트롤(확대, 지도 유형)은 코드에 `addControl`이 없어 넣지 않았다.
+스크린샷: `docs/superpowers/reviews/2026-09-04-personal-map/01-map.jpg`, `02-marker-card.jpg`, `03-list.jpg`, `05-failed.jpg`. `04-empty`는 항목 10을 확인하지 못해 없다.
 
 ## 이 스펙이 바꾸는 다른 문서
 
