@@ -15,7 +15,7 @@
 1. 사용자가 이름, 주소, 반경(기본 500m)을 입력한다.
 2. 서버 액션이 로그인 사용자를 확인하고, 같은 이름의 장소가 있으면 PLACE_NAME_DUPLICATE로 거절한다.
 3. Geocoding으로 주소를 좌표로 바꾼다. 결과가 없으면 GEOCODE_NOT_FOUND. 저장하지 않는다.
-4. Text Search로 반경 안의 음식점을 최대 3페이지(60개) 가져온다. [09-external-api.md](09-external-api.md)
+4. 반경 안의 음식점을 가져온다. 카카오 전환(D17) 뒤에는 키워드 9개와 격자로 나눠 질의하고 거리순 200개까지 저장한다. [09-external-api.md](09-external-api.md), [17-restaurant-search-expansion.md](17-restaurant-search-expansion.md)
 5. 각 식당의 영업시간을 hours JSON으로 변환한다. 영업시간이 없으면 hours는 null, hours_source는 none.
 6. 식당을 google_place_id 기준으로 upsert한다. 기존 행의 hours_source가 override이면 hours를 덮어쓰지 않는다.
 7. 장소 행과 place_restaurants 연결을 저장한다. 식당 저장과 장소 저장은 한 트랜잭션이다.

@@ -13,7 +13,7 @@
 | name | text | 예: 회사, 집 |
 | address | text | 사용자가 입력한 주소 문자열 |
 | lat, lng | double | Geocoding 결과 |
-| radius_m | int | 검색 반경(m). 기본 500, 허용 100~2000 |
+| radius_m | int | 검색 반경(m). 기본 500, 허용 100~1000 (D18. 2000 이전에 만든 행은 그대로 둔다) |
 | created_at | timestamptz | |
 
 제약: (user_id, name) 유일.

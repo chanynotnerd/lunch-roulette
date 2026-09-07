@@ -12,7 +12,7 @@
 | 번호 | 파일 | 주제 | 한 줄 요약 |
 |---|---|---|---|
 | 01 | [01-overview.md](01-overview.md) | 개요 | 목적, 범위, 제외 항목, 기술 스택 |
-| 02 | [02-decisions.md](02-decisions.md) | 결정 기록 | 브레인스토밍에서 확정한 결정 16건과 이유 |
+| 02 | [02-decisions.md](02-decisions.md) | 결정 기록 | 브레인스토밍에서 확정한 결정 18건과 이유 |
 | 03 | [03-architecture.md](03-architecture.md) | 아키텍처 | 배포 구성, 책임 분리, 시간 기준 |
 | 04 | [04-data-model.md](04-data-model.md) | 데이터 모델 | 테이블 5개, hours JSON, 접근 제어 |
 | 05 | [05-rules.md](05-rules.md) | 규칙 | 슬롯, 영업시간 판정, 세션 상태, 레벨 |
@@ -27,6 +27,7 @@
 | 14 | [14-userflow-happy-case.md](14-userflow-happy-case.md) | 유저플로우 | 해피케이스 시나리오와 다이어그램. Figma(FigJam)의 원본 |
 | 15 | [15-visual-design.md](15-visual-design.md) | 시각 디자인 | 단골 도장 카드 컨셉, 토큰, 서체, 레이아웃, 움직임, 접근성 |
 | 16 | [16-personal-map.md](16-personal-map.md) | 퍼스널 맵 | 기록 탭 전체 화면 카카오 지도, 식당별 도장 마커, 목록 오버레이. 시각 디자인 구현 이후 작업 |
+| 17 | [17-restaurant-search-expansion.md](17-restaurant-search-expansion.md) | 식당 수집 확장 | 카카오 키워드 9개 + 2×2 격자 질의로 45개 벽을 넘김. 장소당 200개 거리순, 반경 상한 1000m |
 
 ## 읽는 순서
 
