@@ -3,7 +3,7 @@
 [← 인덱스](README.md)
 
 장소를 만들 때 카카오 로컬 API로 반경 안 식당을 수집한다. 지금은 질의가 하나(`query=음식점`)라 카카오 규격상 최대 45개만 들어온다.
-이 스펙은 키워드 9개와 2×2 격자로 질의를 나눠 여러 번 호출하고 id로 합쳐 45개 벽을 넘긴다. 서버 액션, 데이터 모델, 화면은 바꾸지 않는다. RPC는 심층 방어 상한 하나만 100에서 200으로 올린다(마이그레이션 0006).
+이 스펙은 키워드 9개와 2×2 격자로 질의를 나눠 여러 번 호출하고 id로 합쳐 45개 벽을 넘긴다. 서버 액션, 데이터 모델, 화면은 바꾸지 않는다. RPC는 심층 방어 상한 하나만 100에서 300으로 올린다(앱은 최대 200개까지 보낸다, 마이그레이션 0006).
 결정 기록은 [02-decisions.md](02-decisions.md) D18이다.
 
 ## 문제
@@ -74,7 +74,7 @@
 
 ## 코드 구조
 
-`search.ts` 시그니처 `searchRestaurants(center, radiusM)`, `createPlace`, `FoundRestaurant` 타입은 바꾸지 않는다. RPC `create_place_with_restaurants`는 시그니처와 본문을 유지하고 0005의 식당 개수 상한만 100 → 200으로 올린다(구현 중 발견, 마이그레이션 0006). Google 어댑터는 건드리지 않는다(B7).
+`search.ts` 시그니처 `searchRestaurants(center, radiusM)`, `createPlace`, `FoundRestaurant` 타입은 바꾸지 않는다. RPC `create_place_with_restaurants`는 시그니처와 본문을 유지하고 0005의 식당 개수 상한만 100 → 300으로 올린다(앱은 최대 200개까지 보낸다, 구현 중 발견, 마이그레이션 0006). Google 어댑터는 건드리지 않는다(B7).
 
 | 파일 | 변경 | 내용 |
 |---|---|---|
@@ -82,7 +82,7 @@
 | `src/places/kakao.ts` | 수정 | 상수 `KEYWORDS`(9개), `GRID_THRESHOLD_M = 500`, `MAX_RESTAURANTS = 200`, `CONCURRENCY = 5`, `MAX_PAGES = 3`. `searchRestaurants`는 셀 × 키워드 작업을 만들어 `mapWithConcurrency`로 돌리고 Map에 합친 뒤 `capByDistance`. `geocode`와 문서 파싱은 그대로 |
 | `src/actions/places.ts` | 수정 | `RADIUS_MAX` 2000 → 1000 |
 | `src/app/(app)/places/PlaceForm.tsx` | 수정 | 반경 입력 `max={1000}` |
-| `supabase/migrations/0006_rpc_restaurant_cap_200.sql` | 신설 | RPC 심층 방어 상한 `> 100` → `> 200`. 0005 본문 복사, 숫자와 메시지만 변경. 적용 전에는 200개 장소 생성이 `too many restaurants`로 실패한다 |
+| `supabase/migrations/0006_rpc_restaurant_cap_300.sql` | 신설 | RPC 심층 방어 상한 `> 100` → `> 300`(앱은 최대 200개까지 보낸다). 0005 본문 복사, 숫자와 메시지만 변경. 적용 전에는 200개 장소 생성이 `too many restaurants`로 실패한다 |
 
 이미 1000m 넘게 만든 장소는 그대로 둔다. 새 범위는 새로 만들 때만 적용된다.
 

@@ -1,9 +1,11 @@
--- 0006: create_place_with_restaurants 의 식당 개수 상한 100 → 200 (스펙 17 E4)
+-- 0006: create_place_with_restaurants 의 식당 개수 상한 100 → 300 (스펙 17 E4)
 --
 -- 스펙 17 로 장소당 식당이 거리순 최대 200개가 되었는데, 0005 의 심층 방어 검사가 100개에서
 -- 'too many restaurants' 를 던져 createPlace 가 UNEXPECTED 로 실패했다(2026-09-07 로컬 확인).
 -- 함수 본문은 0005 와 같고 상한 숫자와 메시지만 바꾼다. ACL 은 create or replace 가 유지하지만
 -- 0005 와 같은 revoke/grant 를 다시 실행해 service_role 전용을 보장한다.
+-- 앱은 MAX_RESTAURANTS = 200개까지만 보내므로 DB 상한은 여유를 두어 300으로 잡는다.
+-- 앱 상한을 올릴 때 DB가 먼저 막지 않게 하기 위함이다.
 
 create or replace function public.create_place_with_restaurants(
   p_user_id uuid,
@@ -27,8 +29,8 @@ begin
   if jsonb_typeof(v_restaurants) <> 'array' then
     raise exception 'p_restaurants must be a json array';
   end if;
-  if jsonb_array_length(v_restaurants) > 200 then
-    raise exception 'too many restaurants: % (max 200)', jsonb_array_length(v_restaurants);
+  if jsonb_array_length(v_restaurants) > 300 then
+    raise exception 'too many restaurants: % (max 300)', jsonb_array_length(v_restaurants);
   end if;
 
   insert into public.places (user_id, name, address, lat, lng, radius_m)
