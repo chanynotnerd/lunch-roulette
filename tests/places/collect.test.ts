@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { GRID_THRESHOLD_M, capByDistance, gridCells } from '@/places/collect'
+import { describe, expect, it, vi } from 'vitest'
+import { GRID_THRESHOLD_M, capByDistance, gridCells, mapWithConcurrency } from '@/places/collect'
 
 const CENTER = { lat: 37.5, lng: 127.0 }
 const M_PER_DEG_LAT = 111_320
@@ -125,5 +125,90 @@ describe('capByDistance', () => {
 
   it('빈 입력이면 빈 배열', () => {
     expect(capByDistance(CENTER, [], 200)).toEqual([])
+  })
+})
+
+function deferred<T>() {
+  let resolve!: (v: T) => void
+  let reject!: (e: unknown) => void
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res
+    reject = rej
+  })
+  return { promise, resolve, reject }
+}
+
+/** 매크로태스크 한 번 양보. 시작된 작업이 자리 잡을 시간을 준다. */
+const tick = () => new Promise<void>((r) => setTimeout(r, 0))
+
+describe('mapWithConcurrency', () => {
+  it('빈 입력이면 빈 배열이고 fn 을 부르지 않는다', async () => {
+    const fn = vi.fn(async (n: number) => n)
+    await expect(mapWithConcurrency([], 3, fn)).resolves.toEqual([])
+    expect(fn).not.toHaveBeenCalled()
+  })
+
+  it('결과 순서는 입력 순서와 같다 (완료 순서와 무관)', async () => {
+    const ds = [deferred<string>(), deferred<string>(), deferred<string>()]
+    const p = mapWithConcurrency([0, 1, 2], 3, (i) => ds[i].promise)
+    await tick()
+    ds[2].resolve('c')
+    ds[0].resolve('a')
+    ds[1].resolve('b')
+    await expect(p).resolves.toEqual(['a', 'b', 'c'])
+  })
+
+  it('fn 은 (item, index) 를 받는다', async () => {
+    const out = await mapWithConcurrency(['x', 'y'], 2, async (item, index) => `${item}${index}`)
+    expect(out).toEqual(['x0', 'y1'])
+  })
+
+  it('동시에 진행 중인 작업이 limit 을 넘지 않는다', async () => {
+    const items = [0, 1, 2, 3, 4, 5, 6]
+    const ds = items.map(() => deferred<number>())
+    let active = 0
+    let maxActive = 0
+    const started: number[] = []
+    const p = mapWithConcurrency(items, 2, async (i) => {
+      active++
+      started.push(i)
+      maxActive = Math.max(maxActive, active)
+      const v = await ds[i].promise
+      active--
+      return v
+    })
+    await tick()
+    expect(started).toEqual([0, 1])
+    ds[0].resolve(0)
+    await tick()
+    expect(started).toEqual([0, 1, 2])
+    for (const i of items) ds[i].resolve(i)
+    await expect(p).resolves.toEqual(items)
+    expect(maxActive).toBe(2)
+  })
+
+  it('하나가 reject 하면 아직 시작 안 한 작업은 시작되지 않고 그 오류로 reject 한다', async () => {
+    const items = [0, 1, 2, 3, 4, 5]
+    const ds = items.map(() => deferred<number>())
+    const started: number[] = []
+    const p = mapWithConcurrency(items, 2, (i) => {
+      started.push(i)
+      return ds[i].promise
+    })
+    const settled = p.catch((e) => e)
+    await tick()
+    expect(started).toEqual([0, 1])
+    const boom = new Error('boom')
+    ds[0].reject(boom)
+    expect(await settled).toBe(boom)
+    // 진행 중이던 1번이 끝나도 2번 이후는 시작하지 않는다
+    ds[1].resolve(1)
+    await tick()
+    expect(started).toEqual([0, 1])
+  })
+
+  it('limit 이 1 미만이거나 정수가 아니면 RangeError', async () => {
+    await expect(mapWithConcurrency([1], 0, async (n) => n)).rejects.toBeInstanceOf(RangeError)
+    await expect(mapWithConcurrency([1], 1.5, async (n) => n)).rejects.toBeInstanceOf(RangeError)
   })
 })

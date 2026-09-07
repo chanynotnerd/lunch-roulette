@@ -54,3 +54,35 @@ export function capByDistance<T extends { google_place_id: string; lat: number; 
   })
   return withDistance.slice(0, Math.max(0, max)).map((w) => w.item)
 }
+
+/**
+ * items 를 최대 limit 개씩 동시에 fn 으로 처리한다. 결과는 입력 순서.
+ * 하나가 reject 하면 아직 시작하지 않은 항목은 시작하지 않고 그 오류로 reject 한다.
+ * 이미 진행 중인 항목은 끝나도 결과를 쓰지 않는다(전체가 이미 reject 됐으므로). (스펙 17 E6, E7)
+ */
+export async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  if (!Number.isInteger(limit) || limit < 1) throw new RangeError(`limit must be a positive integer: ${limit}`)
+  const results: R[] = new Array(items.length)
+  let next = 0
+  let failed = false
+
+  async function worker(): Promise<void> {
+    while (!failed) {
+      const i = next++
+      if (i >= items.length) return
+      try {
+        results[i] = await fn(items[i], i)
+      } catch (e) {
+        failed = true
+        throw e
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker))
+  return results
+}
