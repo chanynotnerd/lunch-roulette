@@ -42,3 +42,6 @@ docs/design-refs/
 
 # Supabase CLI 캐시
 supabase/.temp/
+
+# 셀프호스팅 DB 백업 덤프(deploy/scripts/backup.ps1 산출물)
+deploy/backups/

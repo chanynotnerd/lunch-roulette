@@ -10,7 +10,8 @@ Google 로그인 → 장소(주소) 등록 → 카카오 로컬 API로 반경 �
 
 - 저장소: `C:\Users\beafter-window\project\lunch-roulette`, 브랜치 main, 커밋 40개, 최신 `5e44946`. 원격(GitHub) 없음.
 - 작업 트리에 다른 Claude 세션(코드리뷰)이 남긴 미커밋 변경 39개 파일이 있다. 테스트는 통과(222개). 그 세션이 커밋을 마치면 `npx vercel --prod --yes`로 한 번 더 배포한다.
-- 프로덕션: https://lunch-roulette-sooty.vercel.app (Vercel 프로젝트 lunch-roulette, 계정 boltwriter721-2668). 로그인 화면까지 확인됨.
+- **정식 주소(2026-09-08부터): https://lunch.rouleat.biz** — 이 노트북의 Docker 셀프호스팅(Supabase self-host + Next.js + Cloudflare Tunnel). 구성·운영·백업은 `deploy/README.md`. 데이터는 클라우드에서 이전하지 않고 새로 시작했다.
+- 예전 프로덕션 https://lunch-roulette-sooty.vercel.app (Vercel 프로젝트 lunch-roulette, 계정 boltwriter721-2668)과 Supabase 클라우드 프로젝트는 삭제하지 않고 pause 보관. Supabase는 2026-09-08 pause 완료, Vercel pause는 CLI 대화형 확인이 필요해 사용자가 `npx vercel project pause lunch-roulette`로 직접 실행. 되돌릴 때는 둘 다 unpause.
 - Vercel production 환경변수 8개: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, KAKAO_REST_API_KEY, PLACES_PROVIDER=kakao, ADMIN_EMAILS, NEXT_PUBLIC_SITE_URL, NEXT_PUBLIC_KAKAO_JS_KEY. ROULETTE_ALLOW_ANY_TIME은 2026-09-07 제거 후 재배포 완료(운영에서는 슬롯 밖이면 '다음 룰렛은 HH:MM에 열립니다').
 - 로컬: `.env.local`에 같은 값 + `ROULETTE_ALLOW_ANY_TIME=true`. `npm run dev`로 http://localhost:3000.
 - Supabase 프로젝트 ref `ybqsyjngvdjrenylrffd`(조직 lunch-roulette, Free). 마이그레이션 0001~0004 적용 완료. Google 로그인 Enabled. Redirect URLs: localhost와 Vercel 도메인의 `/auth/callback`.
@@ -32,7 +33,7 @@ Google 로그인 → 장소(주소) 등록 → 카카오 로컬 API로 반경 �
 
 - 스펙(source of truth): `docs/superpowers/specs/2026-09-04-lunch-roulette/` 01~18. 13은 백로그, 14는 유저플로우 해피케이스(Mermaid 원본), 15는 시각 디자인, 16은 퍼스널 맵(기록 탭 지도), 17은 식당 수집 확장, 18은 내 정보(마이페이지).
 - 계획: `docs/superpowers/plans/2026-09-04-lunch-roulette/README.md` (배포 결과 섹션 포함).
-- Figma Design 화면 캡처 플로우(완료): https://www.figma.com/design/swDjWYtHqtZzFEZmw31mdW.
+- Figma Design 화면 캡처 플로우(완료, 2026-09-07 갱신): https://www.figma.com/design/swDjWYtHqtZzFEZmw31mdW. 캡처 13장(①~⑧ 09-04, ⑨ 지도·⑩ 카드·⑪ 목록·⑫ 내 정보 09-07), 섹션 6개, 범례. FigJam 보드도 v2 플로우차트와 v2 범례를 추가(옛 버전은 사용자가 삭제).
 - Figma export 재사용 가이드: `docs/figma/userflow-export-guide.md` (참고 파일, 절차, 스크립트 템플릿, 체크리스트). 캡처 원본: `docs/figma/captures/`.
 - FigJam 보드(완료): https://www.figma.com/board/TYKrI6JL3kwlVwbXDZyTXL. 예비용 SVG: `docs/figma/userflow-happy-case-1.svg`(플로우), `-2.svg`(상태 전이).
 - 코드리뷰 결과(다른 세션): `docs/reviews/2026-09-04-code-review.md`.

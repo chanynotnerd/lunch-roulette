@@ -111,8 +111,41 @@ docker compose up -d --build app         # 코드 바꾼 뒤 앱만 다시 빌�
 docker compose run --rm migrate          # 새 마이그레이션 파일 적용
 docker compose down                      # 정지 (DB 데이터 유지)
 docker compose down -v                   # DB 데이터까지 삭제 (주의)
-docker compose exec db pg_dump -U postgres postgres > backup.sql   # 백업
 ```
+
+## 운영 주의
+
+- 이 노트북이 정식 서버다(2026-09-08부터, 정식 주소 https://lunch.rouleat.biz). Vercel 프로젝트와 Supabase 클라우드 프로젝트는
+  삭제하지 않고 pause 상태로 보관한다. 되돌릴 때는 둘 다 unpause 하면 예전 주소가 그대로 살아난다.
+- 운영 `.env` 의 `ROULETTE_ALLOW_ANY_TIME` 은 비워 둔다. true 면 슬롯 밖에서도 룰렛이 열려 "지금 영업 중인 식당이 0곳뿐입니다" 같은
+  문구가 뜬다(2026-09-08 실제 발생). 시간과 무관하게 테스트할 때만 잠시 켜고 `docker compose up -d app` 으로 재생성한 뒤 다시 비운다.
+- Docker Desktop 은 "로그인 시 시작" 이 켜져 있다(settings-store.json `AutoStart: true`). 컨테이너는 전부 `restart: unless-stopped` 라
+  Docker 만 뜨면 스택이 따라 올라온다. 단, Windows 에 로그인하기 전에는 Docker Desktop 이 뜨지 않는다.
+- 노트북은 끄지 않고, Windows 업데이트 자동 재부팅은 사용자가 직접 막는다(활성 시간 08~22시는 설정해 둠).
+
+## 백업과 복원
+
+`scripts/backup.ps1` 이 매일 04:00 에 실행된다(작업 스케줄러 `LunchRouletteDbBackup`, 등록은 `scripts/register-backup-task.ps1`).
+컨테이너 안에서 `pg_dump -Fc` 를 만들어 `backups/lunch-YYYYMMDD-HHmm.dump` 로 꺼내고 7일 지난 파일은 지운다.
+기록은 `backups/backup.log`. `backups/` 는 git 에 올라가지 않는다.
+
+```powershell
+.\scripts\backup.ps1                      # 지금 바로 한 번 백업
+schtasks /Query /TN LunchRouletteDbBackup # 예약 상태
+```
+
+복원(같은 스택에 덮어쓰기. 앱을 먼저 멈춘다):
+
+```sh
+docker compose stop app
+docker compose cp backups/lunch-YYYYMMDD-HHmm.dump db:/tmp/restore.dump
+docker compose exec -T db pg_restore -U postgres -d postgres --clean --if-exists --no-owner \
+  --schema=public --schema=auth --schema=supabase_migrations /tmp/restore.dump
+docker compose exec -T db rm /tmp/restore.dump
+docker compose start app
+```
+
+덤프 내용 확인만 하려면 `pg_restore --list /tmp/restore.dump`.
 
 ## Oracle VM 으로 옮길 때
 
