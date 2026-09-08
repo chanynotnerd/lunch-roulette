@@ -1,0 +1,25 @@
+# Caddy 리버스 프록시. Cloudflare Tunnel 없이 직접 공개할 때의 대안 입구(docker compose --profile public).
+# 기본 입구는 Cloudflare Tunnel(profile tunnel)이며, 그때는 이 파일을 안 쓴다.
+#
+# 도메인 하나(DOMAIN, 예: lunch.example.com)로 앱과 Supabase API를 함께 낸다.
+# 호스트명은 하나만 쓰고 경로로 나눈다. HTTPS 인증서는 Caddy가 Let's Encrypt에서 자동 발급·갱신한다
+# (80·443 포트가 서버까지 열려 있어야 한다).
+#
+#   https://DOMAIN/auth/v1/*   → api-gw (GoTrue)      구글 로그인 콜백 포함
+#   https://DOMAIN/rest/v1/*   → api-gw (PostgREST)
+#   https://DOMAIN/*           → app    (Next.js)      앱의 /auth/callback 은 여기
+#
+# Studio(관리 화면)는 일부러 밖으로 안 낸다. 서버에서 http://localhost:8000 으로만 연다.
+
+{$DOMAIN} {
+	encode gzip
+
+	@supabase path /auth/v1/* /rest/v1/*
+	handle @supabase {
+		reverse_proxy api-gw:8000
+	}
+
+	handle {
+		reverse_proxy app:3000
+	}
+}
