@@ -29,6 +29,7 @@
 | 16 | [16-personal-map.md](16-personal-map.md) | 퍼스널 맵 | 기록 탭 전체 화면 카카오 지도, 식당별 도장 마커, 목록 오버레이. 시각 디자인 구현 이후 작업 |
 | 17 | [17-restaurant-search-expansion.md](17-restaurant-search-expansion.md) | 식당 수집 확장 | 카카오 키워드 9개 + 2×2 격자 질의로 45개 벽을 넘김. 장소당 200개 거리순, 반경 상한 1000m |
 | 18 | [18-my-page.md](18-my-page.md) | 내 정보 | 하단 탭 4번째 화면. Google 계정 사진·이름·이메일 표시와 로그아웃. DB 변경 없음 |
+| 19 | [19-address-search.md](19-address-search.md) | 주소 검색 | 장소 추가 폼의 주소 칸을 카카오 우편번호 서비스(임베드)로 교체. 직접 입력 폴백. 서버·DB 변경 없음 |
 
 ## 읽는 순서
 
